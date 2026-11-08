@@ -99,7 +99,6 @@
             transition: all 0.2s ease;
         }
 
-
         .stack-grid {
             display: flex;
             flex-direction: column;
@@ -143,7 +142,6 @@
                 margin 0.3s ease;
         }
 
-
         .link-list a {
             text-decoration: none;
             color: var(--md-on-surface);
@@ -156,7 +154,6 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
 
         /* ===== ホバー/タッチ状態 =====
            PC(マウス)のみ :hover を使用。スマホは :hover が残り続けるため、
@@ -298,7 +295,6 @@
             transition: all 0.2s;
         }
 
-
         /* エディタフォーム用スタイル */
         .edit-section-box {
             background: var(--md-bg);
@@ -390,7 +386,7 @@
         <h1>Start Page for Phone</h1>
         <div class="header-controls">
             <a id="btn-bookmark" href="#" class="header-icon-btn" title="ブックマーク">🔖</a>
-            <a id="btn-qr" href="#" class="header-icon-btn" title="QRコード">📷</a>
+            <a id="btn-qr" href="https://ediuni-al.github.io/aruleto/QR_phone.html" class="header-icon-btn" title="QRコード">📷</a>
             <button id="btn-settings" class="header-icon-btn" title="設定">⚙️</button>
         </div>
     </header>
@@ -432,6 +428,16 @@
     const STORAGE_KEY = 'start_page_cache_data_v1';
     let currentData = null;
 
+    // データが何もない場合のフォールバック用テンプレート
+    const DEFAULT_DATA = {
+        header_links: {
+            bookmark: "",
+            qr: "https://ediuni-al.github.io/aruleto/QR_phone.html"
+        },
+        direct_buttons: [],
+        sections: []
+    };
+
     const settingsModal = document.getElementById('settings-modal');
     const editorModal = document.getElementById('editor-modal');
     
@@ -472,7 +478,12 @@
 
         if (data.header_links) {
             if (data.header_links.bookmark) document.getElementById('btn-bookmark').href = data.header_links.bookmark;
-            if (data.header_links.qr) document.getElementById('btn-qr').href = data.header_links.qr;
+            if (data.header_links.qr) {
+                document.getElementById('btn-qr').href = data.header_links.qr;
+            }
+        } else {
+            // header_links 自体が存在しない場合の完全なデフォルト
+            document.getElementById('btn-qr').href = 'https://ediuni-al.github.io/aruleto/QR_phone.html';
         }
 
         const chipsContainer = document.getElementById('nav-chips');
@@ -539,6 +550,9 @@
             renderPage(data);
         } catch (error) {
             console.error('初期読み込み失敗:', error);
+            // フォールバック：デフォルトの空テンプレートを使う
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DATA, null, 2));
+            renderPage(DEFAULT_DATA);
         }
     }
 
@@ -580,7 +594,9 @@
 
     // 編集モーダルの動的フォーム生成
     document.getElementById('btn-open-editor').addEventListener('click', () => {
-        if (!currentData) return;
+        if (!currentData) {
+            currentData = JSON.parse(JSON.stringify(DEFAULT_DATA));
+        }
         const container = document.getElementById('editor-form-container');
         container.innerHTML = '';
 
