@@ -6,7 +6,6 @@
     <title>Start Page for Phone</title>
     <style>
         :root {
-            /* ライトモード変数 */
             --md-bg: #f5fafd; 
             --md-primary: #0077b6;
             --md-on-surface: #1a1c1e;
@@ -16,7 +15,6 @@
             --font-main: 13px;
         }
 
-        /* ダークモード変数 */
         [data-theme="dark"] {
             --md-bg: #1a1c1e;
             --md-primary: #76d1ff;
@@ -60,7 +58,12 @@
             margin: 0;
         }
 
-        /* ヘッダーのアイコン要素（サイズを揃えてタッチしやすく） */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .header-icon-btn {
             cursor: pointer;
             width: 40px;
@@ -76,29 +79,6 @@
             text-decoration: none;
             transition: all 0.2s;
             box-sizing: border-box;
-        }
-        .header-icon-btn:hover {
-            background: var(--md-primary);
-            color: var(--md-container);
-        }
-
-        /* ダークモードスイッチ */
-        .theme-toggle {
-            cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 20px;
-            border: 1px solid var(--md-primary);
-            background: transparent;
-            color: var(--md-primary);
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: all 0.2s;
-        }
-        .theme-toggle:hover {
-            background: var(--md-primary);
-            color: var(--md-container);
         }
 
         .nav-chips {
@@ -119,12 +99,6 @@
             transition: all 0.2s ease;
         }
 
-        .chip:hover {
-            background-color: var(--md-primary);
-            color: #fff;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
 
         .stack-grid {
             display: flex;
@@ -151,7 +125,6 @@
             cursor: default;
         }
 
-        /* リンク一覧の制御（ふわっとスムーズに展開） */
         .link-list {
             list-style: none;
             padding: 0;
@@ -170,18 +143,6 @@
                 margin 0.3s ease;
         }
 
-        section:hover {
-            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-        }
-
-        section:hover .link-list {
-            max-height: 500px;
-            opacity: 1;
-            transform: translateY(0);
-            margin-top: 12px;
-            padding-top: 10px;
-            border-top: 1px solid var(--md-surface-variant);
-        }
 
         .link-list a {
             text-decoration: none;
@@ -196,22 +157,229 @@
             text-overflow: ellipsis;
         }
 
-        .link-list a:hover {
-            background-color: var(--md-link-hover);
-            color: var(--md-primary);
-            padding-left: 12px;
-            font-weight: 500;
+
+        /* ===== ホバー/タッチ状態 =====
+           PC(マウス)のみ :hover を使用。スマホは :hover が残り続けるため、
+           タッチ中だけ :active、セクション展開は .touch-open で管理し、
+           ページ移動・復帰時に JS で解除する */
+        @media (hover: hover) and (pointer: fine) {
+            .header-icon-btn:hover {
+                background: var(--md-primary);
+                color: var(--md-container);
+            }
+            .chip:hover {
+                background-color: var(--md-primary);
+                color: #fff;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            section:hover {
+                box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+            }
+            section:hover .link-list {
+                max-height: 500px;
+                opacity: 1;
+                transform: translateY(0);
+                margin-top: 12px;
+                padding-top: 10px;
+                border-top: 1px solid var(--md-surface-variant);
+            }
+            .link-list a:hover {
+                background-color: var(--md-link-hover);
+                color: var(--md-primary);
+                padding-left: 12px;
+                font-weight: 500;
+            }
+            .menu-btn:hover {
+                background: var(--md-primary);
+                color: var(--md-container);
+            }
         }
 
-        /* 一度タップ・クリックされたリンクのスタイル（訪問済みや永続的な色変化を防ぐためセッション中のみにするなどの制御が可能ですが、今回はブラウザ標準の :visited による色固定を防ぐため、通常の遷移色設定にしています） */
+        /* タッチ時（指を離すと元に戻る） */
+        .header-icon-btn:active {
+            background: var(--md-primary);
+            color: var(--md-container);
+        }
+        .chip:active {
+            background-color: var(--md-primary);
+            color: #fff;
+        }
+        .link-list a:active {
+            background-color: var(--md-link-hover);
+            color: var(--md-primary);
+        }
+        .menu-btn:active {
+            background: var(--md-primary);
+            color: var(--md-container);
+        }
+
+        /* タッチ端末でのセクション展開 */
+        section.touch-open {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+        section.touch-open .link-list {
+            max-height: 500px;
+            opacity: 1;
+            transform: translateY(0);
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--md-surface-variant);
+        }
 
         .admin-section {
             background: var(--md-surface-variant);
             opacity: 0.95;
         }
 
+        /* モーダル */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--md-container);
+            color: var(--md-on-surface);
+            padding: 20px;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 600px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid var(--md-surface-variant);
+            padding-bottom: 10px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--md-primary);
+        }
+
+        .close-btn {
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            color: var(--md-on-surface);
+        }
+
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .menu-btn {
+            background: var(--md-surface-variant);
+            color: var(--md-on-surface);
+            border: 1px solid var(--md-primary);
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+
+        /* エディタフォーム用スタイル */
+        .edit-section-box {
+            background: var(--md-bg);
+            border: 1px solid var(--md-surface-variant);
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .edit-section-box h4 {
+            margin: 0 0 10px 0;
+            color: var(--md-primary);
+        }
+
+        .edit-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+
+        .edit-row input[type="text"] {
+            flex: 1;
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid var(--md-surface-variant);
+            background: var(--md-container);
+            color: var(--md-on-surface);
+            font-size: 0.85rem;
+        }
+
+        .action-sm-btn {
+            background: var(--md-surface-variant);
+            border: 1px solid var(--md-primary);
+            color: var(--md-on-surface);
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+        .action-sm-btn.danger {
+            background: #ffcccc;
+            color: #990000;
+            border-color: #ff9999;
+        }
+
+        .add-btn {
+            background: var(--md-primary);
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            margin-right: 5px;
+        }
+
+        .save-btn {
+            background: var(--md-primary);
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .break-row {
+            background: var(--md-surface-variant);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
         @media (max-width: 600px) {
             .link-list { grid-template-columns: 1fr 1fr; }
+            .edit-row { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -220,205 +388,434 @@
 <div class="container">
     <header>
         <h1>Start Page for Phone</h1>
-        <!-- 一番上の3つの要素（🔖、📷）をアイコン表示のみ＆サイズ統一に修正 -->
-        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3Dfq-0nng_0894MMVqcQntwDJ1qcXrB1DP9pENNvvpNQvvOARAkQ%3D%3D" class="header-icon-btn" title="ブックマーク">🔖</a>
-        <a href="https://ediuni-al.github.io/web_apprications/QR_phone.htm" class="header-icon-btn" title="QRコード">📷</a>
-
-        <button class="theme-toggle" id="theme-toggle">
-            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
-        </button>
+        <div class="header-controls">
+            <a id="btn-bookmark" href="#" class="header-icon-btn" title="ブックマーク">🔖</a>
+            <a id="btn-qr" href="#" class="header-icon-btn" title="QRコード">📷</a>
+            <button id="btn-settings" class="header-icon-btn" title="設定">⚙️</button>
+        </div>
     </header>
 
-    <nav class="nav-chips">
-        <a href="https://www.2nn.jp/" class="chip"><span>📰</span> 2nn</a>
-        <a href="https://news.yahoo.co.jp/" class="chip"><span>📰</span> Yahoo!ニュース</a>
-        <a href="https://weather.yahoo.co.jp/weather/pollen/10/46/46201/" class="chip"><span>🌤️</span> 花粉情報</a>
+    <nav class="nav-chips" id="nav-chips"></nav>
+    <div class="stack-grid" id="stack-grid"></div>
+</div>
 
-<div style="flex-basis: 100%; height: 5px;"></div>
+<!-- 設定メニューモーダル -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>⚙️ 設定</h3>
+            <button class="close-btn" id="close-settings">✕</button>
+        </div>
+        <div class="menu-list">
+            <button class="menu-btn" id="btn-open-editor">✏️ 全リンクデータの編集・新規カラム追加</button>
+            <button class="menu-btn" id="btn-toggle-theme">🌙/☀️ テーマ切り替え</button>
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+            <button class="menu-btn" id="btn-import">📂 JSONを読み込み (インポート)</button>
+            <button class="menu-btn" id="btn-export">💾 JSONを書き出し (エクスポート)</button>
+        </div>
+    </div>
+</div>
 
-        <a href="https://www.amazon.co.jp/" class="chip"><span>🛒</span> Amazon</a>
-        <a href="https://travel.yahoo.co.jp/" class="chip"><span>🏨</span> Yahoo!トラベル</a>
-
-<div style="flex-basis: 100%; height: 5px;"></div>
-
-        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=2" class="chip"><span>💹</span> 保有株</a>
-        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=17" class="chip"><span>💹</span> 米国株</a>
-
-        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=13" class="chip"><span>💹</span> 投資信託</a>
-
-<div style="flex-basis: 100%; height: 5px;"></div>
-        <a href="https://ediuni-al.github.io/web_apprications/%E5%85%85%E9%9B%BB%E6%96%99%E9%87%91%E8%A8%88%E7%AE%97.htm" class="chip"><span>️💰</span> 充電料金計算</a>
-        <a href="https://qden.enegate.jp/enegate/smartmobile/standMapSearch.php?AreaId=8" class="chip"><span>🗺️</span> エコQ電マップ</a>
-        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3D320ucKj1ft4X-58UanVspQJcRMFLlEX1RwsjpbeCIs7_ZBWPyw%3D%3D" class="chip"><span>📍️</span> AutoNav</a>
-<div style="flex-basis: 100%; height: 0;"></div>
-        <a href="https://www.google.com/maps/search/CHAdeMO+50kW/" class="chip"><span>🗺️</span> CHAdeMOマップ</a>
-        <a href="https://ev.gogo.gs/map" class="chip"><span>🗺️</span> EV充電器マップ</a>
-<div style="flex-basis: 100%; height: 0;"></div>
-        <a href="https://ediuni-al.github.io/IV_date/Date%20Calculation%20Tool.html" class="chip"><span>🗓️</span> 日程計算機</a>
-        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3DdDqySbRt0_qfYRqzwQUnaV5aNbJzJW7NqzxBx1xw54peJEMxvg%3D%3D" class="chip"><span>🪫️</span> EV充電記録</a>
-        <a href="https://note.com/notes?status=draft" class="chip"><span>📒️</span> note</a>
-
-    </nav>
-
-    <div class="stack-grid">
-
-        <section>
-            <h2><span class="title-icon">🌤️</span>ニュース & SNS</h2>
-            <ul class="link-list">
-                <li><a href="http://www.2nn.jp/">2NN ニュース速報</a></li>
-                <li><a href="http://news.yahoo.co.jp/">Yahoo!ニュース</a></li>
-                <li><a href="https://itsoku.org/">IT速報</a></li>
-                <li><a href="https://www.mbc.co.jp/news/">MBCニュース</a></li>
-                <li><a href="https://weather.yahoo.co.jp/weather/46/8810/46201.html">鹿児島市の天気</a></li>
-                <li><a href="http://kunisawa.net/">国沢net</a></li>
-                <li><a href="http://pc.watch.impress.co.jp/">PC Watch</a></li>
-                <li><a href="http://www.gizmodo.jp/">Gizmode</a></li>
-                <li><a href="http://blog.esuteru.com/">はちま起稿</a></li>
-                <li><a href="https://www.instagram.com/?hl=ja">Instagram</a></li>
-                <li><a href="https://www.facebook.com/home.php">Facebook</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">✈️</span>旅行関連</h2>
-            <ul class="link-list">
-                <li><a href="https://travel.yahoo.co.jp/">Yahoo!トラベル</a></li>
-                <li><a href="http://my.travel.rakuten.co.jp/mytravel/">楽天トラベル</a></li>
-                <li><a href="https://www.ana.co.jp/">ANA</a></li>
-                <li><a href="https://www.jal.co.jp/">JAL</a></li>
-                <li><a href="https://www.flypeach.com/">Peach</a></li>
-                <li><a href="https://www.michitabi.com/roundtour/kyushudrive/">九州ドライブパス</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">🌏️</span>その他色々</h2>
-            <ul class="link-list">
-                <li><a href="https://furunavi.jp/?utm_source=google&utm_medium=cpc&utm_campaign=brand_top&rid=b72ed719f8473e3a2b522f01">ふるなび</a></li>
-                <li><a href="https://www.amazon.co.jp/kindle-dbs/fd/prime-pr/ref=sv_kinc_6">Prime Reading</a></li>
-                <li><a href="https://www.amazon.co.jp/hz/mycd/digital-console/contentlist/booksAll/dateDsc/">コンテンツと端末の管理</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">💎</span>投資と個人事業関連</h2>
-            <ul class="link-list">
-                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=2">保有株</a></li>
-                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=17">米国株</a></li>
-                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=13">投資信託</a></li>
-                <li><a href="https://www.rakuten-sec.co.jp/smartphone/?l-id=vtop_select_sp">楽天証券</a></li>
-                <li><a href="https://finance.yahoo.co.jp/quote/5040469.O">日経先物</a></li>
-                <li><a href="https://chartpark.com/wti.html">原油先物</a></li>
-                <li><a href="https://ib.kagin.co.jp/imn/IBGate">かぎんeバンク</a></li>
-                <li><a href="https://www.rakuten-bank.co.jp/">楽天銀行</a></li>
-                <li><a href="https://shinkoku.yayoi-kk.co.jp/Home">やよいon line</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">🛒</span>ショッピング</h2>
-            <ul class="link-list">
-                <li><a href="https://www.amazon.co.jp/">Amazon.co.jp</a></li>
-                <li><a href="https://ja.aliexpress.com/">Aliexpress</a></li>
-                <li><a href="https://shopping.yahoo.co.jp/">Yahoo!ショッピング</a></li>
-                <li><a href="https://www.amazon.co.jp/gp/goldbox">Amazonタイムセール</a></li>
-                <li><a href="https://www.amazon.co.jp/gp/subscribe-and-save/manager/viewsubscriptions/ref=nav__gno_yam_mysns">定期おトク便</a></li>
-                <li><a href="https://www.rakuten.co.jp/">楽天市場</a></li>
-                <li><a href="https://www.yodobashi.com/">ヨドバシカメラ</a></li>
-                <li><a href="https://jp.mercari.com/">メルカリ</a></li>
-                <li><a href="http://www.kakaku.com/">価格.com</a></li>
-                <li><a href="https://auctions.yahoo.co.jp/">ヤフオク！</a></li>
-                <li><a href="https://auth.kms.kuronekoyamato.co.jp/auth/login?forwardUrl=https%3A%2F%2Fmember.kms.kuronekoyamato.co.jp%2Fmember%2Fparcel">クロネコヤマト再配達</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">📺</span>動画関連</h2>
-            <ul class="link-list">
-                <li><a href="https://www.youtube.com/">Youtube</a></li>
-                <li><a href="https://www.netflix.com/browse">Netflix</a></li>
-                <li><a href="https://studio.youtube.com/channel/UCx6Jzz5JtG_PuieIFF1FSXw">Youtube Studio</a></li>
-            </ul>
-        </section>
-
-        <section>
-            <h2><span class="title-icon">👀</span>眼科関連</h2>
-            <ul class="link-list">
-                <li><a href="https://yakka-search.com/">薬価サーチ</a></li>
-                <li><a href="https://ophthalmology-update.jp/">参天眼科Update</a></li>
-                <li><a href="https://www.m3.com/clinical/journal/articles?specialtyId=10015">m3海外ジャーナル</a></li>
-                <li><a href="https://www.gankaikai.or.jp/members_login.html">保険診療Q&A</a></li>
-                <li><a href="https://www.aao.org/journals">AAO online</a></li>
-                <li><a href="https://pubmed.ncbi.nlm.nih.gov/">PubMed</a></li>
-            </ul>
-        </section>
-
-        <section class="admin-section">
-            <h2><span class="title-icon">⚙️</span>自宅専用</h2>
-            <ul class="link-list">
-                <li><a href="http://192.168.11.1/index_adv.html&item=0">Airstation再起動</a></li>
-                <li><a href="http://192.168.11.60/cgi-bin/cgi?req=frm&frm=nas_bittorrent_dlman.html">BT manager</a></li>
-                <li><a href="https://nyaa.si/?c=3_3">nyaa</a></li>
-                <li><a href="https://my.kyuden.co.jp/">My九電</a></li>
-                <li><a href="https://mypage.bmobile.ne.jp/auth/realms/jci_mypage/protocol/openid-connect/auth?response_type=code&scope=openid&client_id=app-client&state=hQmbQXjWLgOaHcUlRPyt9QB02qQ&redirect_uri=https%3A%2F%2Fmypage.bmobile.ne.jp%2Fauth%2Fcallback&nonce=LLcVnxgDgxefSX3hlgY-39dAIBCp74H2ON2Wm4kgKAE">日本通信</a></li>
-                <li><a href="https://www.axa-direct.co.jp/amp/html/#/auth/login">アクサ</a></li>
-                <li><a href="https://net.zurich.jp/">チューリッヒ</a></li>
-                <li><a href="https://fast.com/ja/">回線速度測定</a></li>
-            </ul>
-        </section>
+<!-- 拡張データ編集モーダル -->
+<div class="modal-overlay" id="editor-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ リンクデータの編集</h3>
+            <button class="close-btn" id="close-editor">✕</button>
+        </div>
+        <div id="editor-form-container"></div>
+        <button class="save-btn" id="btn-save-editor">保存してキャッシュを更新</button>
     </div>
 </div>
 
 <script>
-    // --- 変更点1: JSON書き出しのファイル名を "phone_SP_data_〇〇(西暦日付)" に変更 ---
-    // ※もしJSON書き出しを行っているコード（export機能など）がこのファイル内にある場合、
-    // ファイル名生成部分を以下のように当日日付（例: 20261108）を挟む形式に調整してください。
-    function getExportFilename() {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `phone_SP_data_${year}${month}${day}.json`;
+    const STORAGE_KEY = 'start_page_cache_data_v1';
+    let currentData = null;
+
+    const settingsModal = document.getElementById('settings-modal');
+    const editorModal = document.getElementById('editor-modal');
+    
+    document.getElementById('btn-settings').addEventListener('click', () => settingsModal.style.display = 'flex');
+    document.getElementById('close-settings').addEventListener('click', () => settingsModal.style.display = 'none');
+    document.getElementById('close-editor').addEventListener('click', () => editorModal.style.display = 'none');
+
+    // 並べ替え（移動）補助関数
+    function moveElement(btn, direction) {
+        const row = btn.closest('.edit-row, .sec-item-box');
+        if (!row) return;
+        if (direction === 'up' && row.previousElementSibling) {
+            row.parentNode.insertBefore(row, row.previousElementSibling);
+        } else if (direction === 'down' && row.nextElementSibling) {
+            row.parentNode.insertBefore(row.nextElementSibling, row);
+        }
     }
 
-    // --- 変更点2: ページ移動・再訪問時にリンクやボタンの「訪問済み色（色が変わったままになる現象）」をリセット ---
-    // ブラウザの仕様（:visited）による色残りを防ぐため、ページ読み込み時（BFCache復帰時含む）にフォーカスを強制的に外します。
-    window.addEventListener('pageshow', (event) => {
-        // 戻るボタンなどでページが復帰した際にも実行
-        document.querySelectorAll('a, button').forEach(el => {
-            el.blur();
-        });
-    });
-
-    const themeToggle = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    const themeText = document.getElementById('theme-text');
-    const htmlElement = document.documentElement;
-
-    const currentTheme = localStorage.getItem('theme') || 'light';
-    if (currentTheme === 'dark') {
-        htmlElement.setAttribute('data-theme', 'dark');
-        updateToggleUI(true);
-    }
-
-    themeToggle.addEventListener('click', () => {
-        const isDark = htmlElement.getAttribute('data-theme') === 'dark';
+    // テーマ切替
+    document.getElementById('btn-toggle-theme').addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         if (isDark) {
-            htmlElement.removeAttribute('data-theme');
+            document.documentElement.removeAttribute('data-theme');
             localStorage.setItem('theme', 'light');
-            updateToggleUI(false);
         } else {
-            htmlElement.setAttribute('data-theme', 'dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
             localStorage.setItem('theme', 'dark');
-            updateToggleUI(true);
         }
     });
 
-    function updateToggleUI(isDark) {
-        themeIcon.textContent = isDark ? '☀️' : '🌙';
-        themeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    if ((localStorage.getItem('theme') || 'light') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
     }
+
+    // 描画処理
+    function renderPage(data) {
+        currentData = data;
+
+        if (data.header_links) {
+            if (data.header_links.bookmark) document.getElementById('btn-bookmark').href = data.header_links.bookmark;
+            if (data.header_links.qr) document.getElementById('btn-qr').href = data.header_links.qr;
+        }
+
+        const chipsContainer = document.getElementById('nav-chips');
+        chipsContainer.innerHTML = '';
+        if (data.direct_buttons) {
+            data.direct_buttons.forEach(item => {
+                if (item.type === 'break') {
+                    const breakDiv = document.createElement('div');
+                    breakDiv.style.flexBasis = '100%';
+                    breakDiv.style.height = item.height || '5px';
+                    chipsContainer.appendChild(breakDiv);
+                } else if (item.type === 'link') {
+                    const a = document.createElement('a');
+                    a.href = item.url;
+                    a.className = 'chip';
+                    a.textContent = item.label;
+                    chipsContainer.appendChild(a);
+                }
+            });
+        }
+
+        const gridContainer = document.getElementById('stack-grid');
+        gridContainer.innerHTML = '';
+        if (data.sections) {
+            data.sections.forEach(sectionData => {
+                const sec = document.createElement('section');
+                if (sectionData.is_admin) sec.className = 'admin-section';
+
+                const h2 = document.createElement('h2');
+                h2.textContent = sectionData.title;
+                sec.appendChild(h2);
+
+                const ul = document.createElement('ul');
+                ul.className = 'link-list';
+                if (sectionData.links) {
+                    sectionData.links.forEach(link => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = link.url;
+                        a.textContent = link.label;
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    });
+                }
+                sec.appendChild(ul);
+                gridContainer.appendChild(sec);
+            });
+        }
+    }
+
+    async function initPageData() {
+        let cachedData = localStorage.getItem(STORAGE_KEY);
+        if (cachedData) {
+            try {
+                renderPage(JSON.parse(cachedData));
+                return;
+            } catch (e) {}
+        }
+
+        try {
+            const response = await fetch('./start_page_data.json');
+            const data = await response.json();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data, null, 2));
+            renderPage(data);
+        } catch (error) {
+            console.error('初期読み込み失敗:', error);
+        }
+    }
+
+    // インポート・エクスポート
+    document.getElementById('btn-import').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const newData = JSON.parse(evt.target.result);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(newData, null, 2));
+                renderPage(newData);
+                settingsModal.style.display = 'none';
+                alert('JSONファイルを読み込みました。');
+            } catch (err) {
+                alert('無効なJSONファイルです。');
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    document.getElementById('btn-export').addEventListener('click', () => {
+        const cachedData = localStorage.getItem(STORAGE_KEY);
+        if (!cachedData) return;
+        const blob = new Blob([cachedData], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const d = new Date();
+        const ymd = d.getFullYear()
+            + String(d.getMonth() + 1).padStart(2, '0')
+            + String(d.getDate()).padStart(2, '0');
+        a.download = `phone_SP_data_${ymd}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // 編集モーダルの動的フォーム生成
+    document.getElementById('btn-open-editor').addEventListener('click', () => {
+        if (!currentData) return;
+        const container = document.getElementById('editor-form-container');
+        container.innerHTML = '';
+
+        // 1. ヘッダーリンク
+        const hBox = document.createElement('div');
+        hBox.className = 'edit-section-box';
+        hBox.innerHTML = `<h4>ヘッダーリンク</h4>
+            <div class="edit-row"><label>🔖:</label><input type="text" id="edit-bm" value="${currentData.header_links?.bookmark || ''}"></div>
+            <div class="edit-row"><label>📷:</label><input type="text" id="edit-qr" value="${currentData.header_links?.qr || ''}"></div>`;
+        container.appendChild(hBox);
+
+        // 2. ダイレクトボタン群 (nav-chips) の編集
+        const chipBox = document.createElement('div');
+        chipBox.className = 'edit-section-box';
+        chipBox.id = 'editor-chips-box';
+        chipBox.innerHTML = `<h4>トップボタン群</h4>`;
+        const chipsList = document.createElement('div');
+        chipsList.id = 'editor-chips-list';
+        
+        (currentData.direct_buttons || []).forEach((item) => {
+            if (item.type === 'link') {
+                const row = document.createElement('div');
+                row.className = 'edit-row chip-row';
+                row.dataset.type = 'link';
+                row.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                                 <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                                 <input type="text" class="c-label" value="${item.label}" placeholder="ラベル">
+                                 <input type="text" class="c-url" value="${item.url}" placeholder="URL">
+                                 <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+                chipsList.appendChild(row);
+            } else if (item.type === 'break') {
+                const row = document.createElement('div');
+                row.className = 'edit-row chip-row break-row';
+                row.dataset.type = 'break';
+                row.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                                 <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                                 <span style="font-weight:bold; font-size:0.85rem;">[強制改行]</span>
+                                 <label style="font-size:0.8rem;">高さ: <input type="text" class="c-height" value="${item.height || '5px'}" style="width:50px;"></label>
+                                 <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+                chipsList.appendChild(row);
+            }
+        });
+        chipBox.appendChild(chipsList);
+
+        const addChipBtn = document.createElement('button');
+        addChipBtn.type = 'button';
+        addChipBtn.className = 'add-btn';
+        addChipBtn.textContent = '+ ボタンを追加';
+        addChipBtn.onclick = () => {
+            const row = document.createElement('div');
+            row.className = 'edit-row chip-row';
+            row.dataset.type = 'link';
+            row.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                             <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                             <input type="text" class="c-label" placeholder="ラベル (例: 🛒 Amazon)">
+                             <input type="text" class="c-url" placeholder="URL">
+                             <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+            chipsList.appendChild(row);
+        };
+        chipBox.appendChild(addChipBtn);
+
+        const addBreakBtn = document.createElement('button');
+        addBreakBtn.type = 'button';
+        addBreakBtn.className = 'add-btn';
+        addBreakBtn.style.background = '#e76f51';
+        addBreakBtn.textContent = '+ 改行を追加';
+        addBreakBtn.onclick = () => {
+            const row = document.createElement('div');
+            row.className = 'edit-row chip-row break-row';
+            row.dataset.type = 'break';
+            row.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                             <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                             <span style="font-weight:bold; font-size:0.85rem;">[強制改行]</span>
+                             <label style="font-size:0.8rem;">高さ: <input type="text" class="c-height" value="5px" style="width:50px;"></label>
+                             <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+            chipsList.appendChild(row);
+        };
+        chipBox.appendChild(addBreakBtn);
+
+        container.appendChild(chipBox);
+
+        // 3. 各セクション（カラム）の編集 ＆ 新規カラム追加
+        const secBox = document.createElement('div');
+        secBox.className = 'edit-section-box';
+        secBox.innerHTML = `<h4>セクション（カラム）一覧</h4>`;
+        const secListContainer = document.createElement('div');
+        secListContainer.id = 'editor-sections-list';
+
+        function renderSectionEditor() {
+            secListContainer.innerHTML = '';
+            (currentData.sections || []).forEach((sec) => {
+                const sDiv = document.createElement('div');
+                sDiv.style.border = '1px dashed var(--md-primary)';
+                sDiv.style.padding = '8px';
+                sDiv.style.marginBottom = '10px';
+                sDiv.style.borderRadius = '6px';
+                sDiv.className = 'sec-item-box';
+
+                sDiv.innerHTML = `
+                    <div class="edit-row">
+                        <button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                        <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                        <input type="text" class="sec-title" value="${sec.title}" placeholder="セクション名">
+                        <label><input type="checkbox" class="sec-admin" ${sec.is_admin ? 'checked' : ''}> グレー表示</label>
+                        <button type="button" class="action-sm-btn danger" onclick="this.closest('.sec-item-box').remove()">セクション削除</button>
+                    </div>
+                    <div class="sec-links-list"></div>
+                `;
+                const linksListEl = sDiv.querySelector('.sec-links-list');
+                (sec.links || []).forEach(l => {
+                    const lRow = document.createElement('div');
+                    lRow.className = 'edit-row link-row';
+                    lRow.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                                      <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                                      <input type="text" class="l-label" value="${l.label}" placeholder="タイトル">
+                                      <input type="text" class="l-url" value="${l.url}" placeholder="URL">
+                                      <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+                    linksListEl.appendChild(lRow);
+                });
+
+                const addLinkBtn = document.createElement('button');
+                addLinkBtn.type = 'button';
+                addLinkBtn.className = 'add-btn';
+                addLinkBtn.textContent = '+ リンク追加';
+                addLinkBtn.onclick = () => {
+                    const lRow = document.createElement('div');
+                    lRow.className = 'edit-row link-row';
+                    lRow.innerHTML = `<button type="button" class="action-sm-btn" onclick="moveElement(this, 'up')">▲</button>
+                                      <button type="button" class="action-sm-btn" onclick="moveElement(this, 'down')">▼</button>
+                                      <input type="text" class="l-label" placeholder="タイトル">
+                                      <input type="text" class="l-url" placeholder="URL">
+                                      <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+                    linksListEl.appendChild(lRow);
+                };
+                sDiv.appendChild(addLinkBtn);
+                secListContainer.appendChild(sDiv);
+            });
+        }
+        renderSectionEditor();
+        secBox.appendChild(secListContainer);
+
+        const addSecBtn = document.createElement('button');
+        addSecBtn.type = 'button';
+        addSecBtn.className = 'add-btn';
+        addSecBtn.style.background = '#2a9d8f';
+        addSecBtn.textContent = '+ 新規セクション（カラム）を追加';
+        addSecBtn.onclick = () => {
+            currentData.sections.push({ title: "📁 新規セクション", links: [] });
+            renderSectionEditor();
+            secListContainer.scrollTop = secListContainer.scrollHeight;
+        };
+        secBox.appendChild(addSecBtn);
+        container.appendChild(secBox);
+
+        settingsModal.style.display = 'none';
+        editorModal.style.display = 'flex';
+    });
+
+    // 編集内容の保存＆キャッシュ更新
+    document.getElementById('btn-save-editor').addEventListener('click', () => {
+        if (!currentData) return;
+
+        // 1. ヘッダーリンク保存
+        currentData.header_links = {
+            bookmark: document.getElementById('edit-bm').value,
+            qr: document.getElementById('edit-qr').value
+        };
+
+        // 2. トップボタン群保存（リンク＆改行）
+        const newChips = [];
+        document.querySelectorAll('#editor-chips-list .chip-row').forEach(row => {
+            const type = row.dataset.type;
+            if (type === 'link') {
+                const label = row.querySelector('.c-label').value;
+                const url = row.querySelector('.c-url').value;
+                if (label && url) {
+                    newChips.push({ type: "link", label, url });
+                }
+            } else if (type === 'break') {
+                const height = row.querySelector('.c-height').value || '5px';
+                newChips.push({ type: "break", height });
+            }
+        });
+        currentData.direct_buttons = newChips;
+
+        // 3. セクション＆リンク保存
+        const newSections = [];
+        document.querySelectorAll('.sec-item-box').forEach(sBox => {
+            const title = sBox.querySelector('.sec-title').value;
+            const is_admin = sBox.querySelector('.sec-admin').checked;
+            const links = [];
+            sBox.querySelectorAll('.link-row').forEach(lRow => {
+                const label = lRow.querySelector('.l-label').value;
+                const url = lRow.querySelector('.l-url').value;
+                if (label && url) {
+                    links.push({ label, url });
+                }
+            });
+            newSections.push({ title, ...(is_admin ? { is_admin: true } : {}), links });
+        });
+        currentData.sections = newSections;
+
+        // 保存と反映
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData, null, 2));
+        renderPage(currentData);
+        editorModal.style.display = 'none';
+        alert('変更を保存しました！「⚙️ 設定」から「JSONを書き出し」を行ってスマホ内ファイルを最新に上書きしてください。');
+    });
+
+    // タッチ端末: セクションのタップ展開 / ページ移動・復帰時に状態をリセット
+    const isMouseDevice = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    function clearTouchState() {
+        document.querySelectorAll('section.touch-open').forEach(el => el.classList.remove('touch-open'));
+        const ae = document.activeElement;
+        if (ae && ae !== document.body && typeof ae.blur === 'function') ae.blur();
+    }
+
+    document.getElementById('stack-grid').addEventListener('click', (e) => {
+        if (isMouseDevice()) return;
+        const sec = e.target.closest('section');
+        if (!sec || e.target.closest('a')) return;
+        const wasOpen = sec.classList.contains('touch-open');
+        clearTouchState();
+        if (!wasOpen) sec.classList.add('touch-open');
+    });
+
+    window.addEventListener('pagehide', clearTouchState);
+    window.addEventListener('pageshow', clearTouchState);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) clearTouchState(); });
+
+    document.addEventListener('DOMContentLoaded', initPageData);
 </script>
 
 </body>
 </html>
+
+```
