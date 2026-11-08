@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Page for Phone</title>
+    <style>
+        :root {
+            /* ライトモード変数 */
+            --md-bg: #f5fafd; 
+            --md-primary: #0077b6;
+            --md-on-surface: #1a1c1e;
+            --md-surface-variant: #e1e8ed;
+            --md-container: #ffffff;
+            --md-link-hover: #e0f2f1;
+            --font-main: 13px;
+        }
+
+        /* ダークモード変数 */
+        [data-theme="dark"] {
+            --md-bg: #1a1c1e;
+            --md-primary: #76d1ff;
+            --md-on-surface: #e2e2e6;
+            --md-surface-variant: #41484d;
+            --md-container: #2d3135;
+            --md-link-hover: #374955;
+        }
+
+        body {
+            background-color: var(--md-bg);
+            color: var(--md-on-surface);
+            font-family: "Google Sans", "BIZ UDPGothic", sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: var(--font-main);
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1600px;
+            padding: 20px 0;
+        }
+
+        header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--md-primary);
+            padding-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 1.2rem;
+            color: var(--md-primary);
+            margin: 0;
+        }
+
+        /* ヘッダーのアイコン要素（サイズを揃えてタッチしやすく） */
+        .header-icon-btn {
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--md-primary);
+            background: transparent;
+            color: var(--md-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+        .header-icon-btn:hover {
+            background: var(--md-primary);
+            color: var(--md-container);
+        }
+
+        /* ダークモードスイッチ */
+        .theme-toggle {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--md-primary);
+            background: transparent;
+            color: var(--md-primary);
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
+        }
+        .theme-toggle:hover {
+            background: var(--md-primary);
+            color: var(--md-container);
+        }
+
+        .nav-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 20px;
+        }
+
+        .chip {
+            background-color: var(--md-surface-variant);
+            color: var(--md-on-surface);
+            text-decoration: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .chip:hover {
+            background-color: var(--md-primary);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .stack-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        section {
+            background: var(--md-container);
+            padding: 10px 18px;
+            border-radius: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        h2 {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--md-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: default;
+        }
+
+        /* リンク一覧の制御（ふわっとスムーズに展開） */
+        .link-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 2px;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: 
+                max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.4s ease,
+                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                margin 0.3s ease;
+        }
+
+        section:hover {
+            box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+        }
+
+        section:hover .link-list {
+            max-height: 500px;
+            opacity: 1;
+            transform: translateY(0);
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--md-surface-variant);
+        }
+
+        .link-list a {
+            text-decoration: none;
+            color: var(--md-on-surface);
+            font-size: 0.82rem;
+            transition: all 0.2s ease-out;
+            display: block;
+            padding: 6px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .link-list a:hover {
+            background-color: var(--md-link-hover);
+            color: var(--md-primary);
+            padding-left: 12px;
+            font-weight: 500;
+        }
+
+        /* 一度タップ・クリックされたリンクのスタイル（訪問済みや永続的な色変化を防ぐためセッション中のみにするなどの制御が可能ですが、今回はブラウザ標準の :visited による色固定を防ぐため、通常の遷移色設定にしています） */
+
+        .admin-section {
+            background: var(--md-surface-variant);
+            opacity: 0.95;
+        }
+
+        @media (max-width: 600px) {
+            .link-list { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Start Page for Phone</h1>
+        <!-- 一番上の3つの要素（🔖、📷）をアイコン表示のみ＆サイズ統一に修正 -->
+        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3Dfq-0nng_0894MMVqcQntwDJ1qcXrB1DP9pENNvvpNQvvOARAkQ%3D%3D" class="header-icon-btn" title="ブックマーク">🔖</a>
+        <a href="https://ediuni-al.github.io/web_apprications/QR_phone.htm" class="header-icon-btn" title="QRコード">📷</a>
+
+        <button class="theme-toggle" id="theme-toggle">
+            <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+        </button>
+    </header>
+
+    <nav class="nav-chips">
+        <a href="https://www.2nn.jp/" class="chip"><span>📰</span> 2nn</a>
+        <a href="https://news.yahoo.co.jp/" class="chip"><span>📰</span> Yahoo!ニュース</a>
+        <a href="https://weather.yahoo.co.jp/weather/pollen/10/46/46201/" class="chip"><span>🌤️</span> 花粉情報</a>
+
+<div style="flex-basis: 100%; height: 5px;"></div>
+
+        <a href="https://www.amazon.co.jp/" class="chip"><span>🛒</span> Amazon</a>
+        <a href="https://travel.yahoo.co.jp/" class="chip"><span>🏨</span> Yahoo!トラベル</a>
+
+<div style="flex-basis: 100%; height: 5px;"></div>
+
+        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=2" class="chip"><span>💹</span> 保有株</a>
+        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=17" class="chip"><span>💹</span> 米国株</a>
+
+        <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=13" class="chip"><span>💹</span> 投資信託</a>
+
+<div style="flex-basis: 100%; height: 5px;"></div>
+        <a href="https://ediuni-al.github.io/web_apprications/%E5%85%85%E9%9B%BB%E6%96%99%E9%87%91%E8%A8%88%E7%AE%97.htm" class="chip"><span>️💰</span> 充電料金計算</a>
+        <a href="https://qden.enegate.jp/enegate/smartmobile/standMapSearch.php?AreaId=8" class="chip"><span>🗺️</span> エコQ電マップ</a>
+        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3D320ucKj1ft4X-58UanVspQJcRMFLlEX1RwsjpbeCIs7_ZBWPyw%3D%3D" class="chip"><span>📍️</span> AutoNav</a>
+<div style="flex-basis: 100%; height: 0;"></div>
+        <a href="https://www.google.com/maps/search/CHAdeMO+50kW/" class="chip"><span>🗺️</span> CHAdeMOマップ</a>
+        <a href="https://ev.gogo.gs/map" class="chip"><span>🗺️</span> EV充電器マップ</a>
+<div style="flex-basis: 100%; height: 0;"></div>
+        <a href="https://ediuni-al.github.io/IV_date/Date%20Calculation%20Tool.html" class="chip"><span>🗓️</span> 日程計算機</a>
+        <a href="content://com.google.android.apps.docs.storage.legacy/enc%3Dencoded%3DdDqySbRt0_qfYRqzwQUnaV5aNbJzJW7NqzxBx1xw54peJEMxvg%3D%3D" class="chip"><span>🪫️</span> EV充電記録</a>
+        <a href="https://note.com/notes?status=draft" class="chip"><span>📒️</span> note</a>
+
+    </nav>
+
+    <div class="stack-grid">
+
+        <section>
+            <h2><span class="title-icon">🌤️</span>ニュース & SNS</h2>
+            <ul class="link-list">
+                <li><a href="http://www.2nn.jp/">2NN ニュース速報</a></li>
+                <li><a href="http://news.yahoo.co.jp/">Yahoo!ニュース</a></li>
+                <li><a href="https://itsoku.org/">IT速報</a></li>
+                <li><a href="https://www.mbc.co.jp/news/">MBCニュース</a></li>
+                <li><a href="https://weather.yahoo.co.jp/weather/46/8810/46201.html">鹿児島市の天気</a></li>
+                <li><a href="http://kunisawa.net/">国沢net</a></li>
+                <li><a href="http://pc.watch.impress.co.jp/">PC Watch</a></li>
+                <li><a href="http://www.gizmodo.jp/">Gizmode</a></li>
+                <li><a href="http://blog.esuteru.com/">はちま起稿</a></li>
+                <li><a href="https://www.instagram.com/?hl=ja">Instagram</a></li>
+                <li><a href="https://www.facebook.com/home.php">Facebook</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">✈️</span>旅行関連</h2>
+            <ul class="link-list">
+                <li><a href="https://travel.yahoo.co.jp/">Yahoo!トラベル</a></li>
+                <li><a href="http://my.travel.rakuten.co.jp/mytravel/">楽天トラベル</a></li>
+                <li><a href="https://www.ana.co.jp/">ANA</a></li>
+                <li><a href="https://www.jal.co.jp/">JAL</a></li>
+                <li><a href="https://www.flypeach.com/">Peach</a></li>
+                <li><a href="https://www.michitabi.com/roundtour/kyushudrive/">九州ドライブパス</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">🌏️</span>その他色々</h2>
+            <ul class="link-list">
+                <li><a href="https://furunavi.jp/?utm_source=google&utm_medium=cpc&utm_campaign=brand_top&rid=b72ed719f8473e3a2b522f01">ふるなび</a></li>
+                <li><a href="https://www.amazon.co.jp/kindle-dbs/fd/prime-pr/ref=sv_kinc_6">Prime Reading</a></li>
+                <li><a href="https://www.amazon.co.jp/hz/mycd/digital-console/contentlist/booksAll/dateDsc/">コンテンツと端末の管理</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">💎</span>投資と個人事業関連</h2>
+            <ul class="link-list">
+                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=2">保有株</a></li>
+                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=17">米国株</a></li>
+                <li><a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=13">投資信託</a></li>
+                <li><a href="https://www.rakuten-sec.co.jp/smartphone/?l-id=vtop_select_sp">楽天証券</a></li>
+                <li><a href="https://finance.yahoo.co.jp/quote/5040469.O">日経先物</a></li>
+                <li><a href="https://chartpark.com/wti.html">原油先物</a></li>
+                <li><a href="https://ib.kagin.co.jp/imn/IBGate">かぎんeバンク</a></li>
+                <li><a href="https://www.rakuten-bank.co.jp/">楽天銀行</a></li>
+                <li><a href="https://shinkoku.yayoi-kk.co.jp/Home">やよいon line</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">🛒</span>ショッピング</h2>
+            <ul class="link-list">
+                <li><a href="https://www.amazon.co.jp/">Amazon.co.jp</a></li>
+                <li><a href="https://ja.aliexpress.com/">Aliexpress</a></li>
+                <li><a href="https://shopping.yahoo.co.jp/">Yahoo!ショッピング</a></li>
+                <li><a href="https://www.amazon.co.jp/gp/goldbox">Amazonタイムセール</a></li>
+                <li><a href="https://www.amazon.co.jp/gp/subscribe-and-save/manager/viewsubscriptions/ref=nav__gno_yam_mysns">定期おトク便</a></li>
+                <li><a href="https://www.rakuten.co.jp/">楽天市場</a></li>
+                <li><a href="https://www.yodobashi.com/">ヨドバシカメラ</a></li>
+                <li><a href="https://jp.mercari.com/">メルカリ</a></li>
+                <li><a href="http://www.kakaku.com/">価格.com</a></li>
+                <li><a href="https://auctions.yahoo.co.jp/">ヤフオク！</a></li>
+                <li><a href="https://auth.kms.kuronekoyamato.co.jp/auth/login?forwardUrl=https%3A%2F%2Fmember.kms.kuronekoyamato.co.jp%2Fmember%2Fparcel">クロネコヤマト再配達</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">📺</span>動画関連</h2>
+            <ul class="link-list">
+                <li><a href="https://www.youtube.com/">Youtube</a></li>
+                <li><a href="https://www.netflix.com/browse">Netflix</a></li>
+                <li><a href="https://studio.youtube.com/channel/UCx6Jzz5JtG_PuieIFF1FSXw">Youtube Studio</a></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2><span class="title-icon">👀</span>眼科関連</h2>
+            <ul class="link-list">
+                <li><a href="https://yakka-search.com/">薬価サーチ</a></li>
+                <li><a href="https://ophthalmology-update.jp/">参天眼科Update</a></li>
+                <li><a href="https://www.m3.com/clinical/journal/articles?specialtyId=10015">m3海外ジャーナル</a></li>
+                <li><a href="https://www.gankaikai.or.jp/members_login.html">保険診療Q&A</a></li>
+                <li><a href="https://www.aao.org/journals">AAO online</a></li>
+                <li><a href="https://pubmed.ncbi.nlm.nih.gov/">PubMed</a></li>
+            </ul>
+        </section>
+
+        <section class="admin-section">
+            <h2><span class="title-icon">⚙️</span>自宅専用</h2>
+            <ul class="link-list">
+                <li><a href="http://192.168.11.1/index_adv.html&item=0">Airstation再起動</a></li>
+                <li><a href="http://192.168.11.60/cgi-bin/cgi?req=frm&frm=nas_bittorrent_dlman.html">BT manager</a></li>
+                <li><a href="https://nyaa.si/?c=3_3">nyaa</a></li>
+                <li><a href="https://my.kyuden.co.jp/">My九電</a></li>
+                <li><a href="https://mypage.bmobile.ne.jp/auth/realms/jci_mypage/protocol/openid-connect/auth?response_type=code&scope=openid&client_id=app-client&state=hQmbQXjWLgOaHcUlRPyt9QB02qQ&redirect_uri=https%3A%2F%2Fmypage.bmobile.ne.jp%2Fauth%2Fcallback&nonce=LLcVnxgDgxefSX3hlgY-39dAIBCp74H2ON2Wm4kgKAE">日本通信</a></li>
+                <li><a href="https://www.axa-direct.co.jp/amp/html/#/auth/login">アクサ</a></li>
+                <li><a href="https://net.zurich.jp/">チューリッヒ</a></li>
+                <li><a href="https://fast.com/ja/">回線速度測定</a></li>
+            </ul>
+        </section>
+    </div>
+</div>
+
+<script>
+    // --- 変更点1: JSON書き出しのファイル名を "phone_SP_data_〇〇(西暦日付)" に変更 ---
+    // ※もしJSON書き出しを行っているコード（export機能など）がこのファイル内にある場合、
+    // ファイル名生成部分を以下のように当日日付（例: 20261108）を挟む形式に調整してください。
+    function getExportFilename() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `phone_SP_data_${year}${month}${day}.json`;
+    }
+
+    // --- 変更点2: ページ移動・再訪問時にリンクやボタンの「訪問済み色（色が変わったままになる現象）」をリセット ---
+    // ブラウザの仕様（:visited）による色残りを防ぐため、ページ読み込み時（BFCache復帰時含む）にフォーカスを強制的に外します。
+    window.addEventListener('pageshow', (event) => {
+        // 戻るボタンなどでページが復帰した際にも実行
+        document.querySelectorAll('a, button').forEach(el => {
+            el.blur();
+        });
+    });
+
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeText = document.getElementById('theme-text');
+    const htmlElement = document.documentElement;
+
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    if (currentTheme === 'dark') {
+        htmlElement.setAttribute('data-theme', 'dark');
+        updateToggleUI(true);
+    }
+
+    themeToggle.addEventListener('click', () => {
+        const isDark = htmlElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            htmlElement.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+            updateToggleUI(false);
+        } else {
+            htmlElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            updateToggleUI(true);
+        }
+    });
+
+    function updateToggleUI(isDark) {
+        themeIcon.textContent = isDark ? '☀️' : '🌙';
+        themeText.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    }
+</script>
+
+</body>
+</html>
