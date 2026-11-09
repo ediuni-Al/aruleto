@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テキストエディタ（拡張版）</title>
+    <style>
+        :root {
+            --bg-main: #0d1117;
+            --bg-panel: #161b22;
+            --bg-subtle: #21262d;
+            --border-color: #30363d;
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --text-bright: #f0f6fc;
+            --accent: #238636;
+            --accent-hover: #2ea043;
+            --blue-accent: #58a6ff;
+            --blue-hover: #388bfd;
+            --danger: #da3633;
+            --warning: #e3b341;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+        }
+
+        [data-theme="light"] {
+            --bg-main: #f6f8fa;
+            --bg-panel: #ffffff;
+            --bg-subtle: #f0f2f5;
+            --border-color: #d0d7de;
+            --text-main: #1f2328;
+            --text-muted: #656d76;
+            --text-bright: #000000;
+            --accent: #1f883d;
+            --accent-hover: #1a7f37;
+            --blue-accent: #0969da;
+            --blue-hover: #0860ca;
+            --danger: #cf222e;
+            --warning: #9a6700;
+            --shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--text-bright);
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            padding: 0.15rem 0.4rem;
+            background-color: rgba(56, 139, 253, 0.15);
+            color: var(--blue-accent);
+            border: 1px solid rgba(56, 139, 253, 0.4);
+            border-radius: 4px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.35rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.825rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .btn:hover {
+            background-color: var(--border-color);
+            color: var(--text-bright);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary:hover { background-color: var(--accent-hover); color: #ffffff; }
+
+        .btn-qr {
+            background-color: var(--blue-accent);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-qr:hover { background-color: var(--blue-hover); color: #ffffff; }
+
+        .divider {
+            width: 1px;
+            height: 20px;
+            background-color: var(--border-color);
+            margin: 0 0.2rem;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            flex-shrink: 0;
+            min-height: 36px;
+        }
+
+        .tab {
+            padding: 0.4rem 0.9rem;
+            font-size: 0.8rem;
+            border-right: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            white-space: nowrap;
+            user-select: none;
+            color: var(--text-muted);
+        }
+
+        .tab:hover { background-color: var(--bg-subtle); color: var(--text-main); }
+        .tab.active { background-color: var(--bg-main); color: var(--text-bright); border-bottom: 2px solid var(--accent); }
+        .tab.dirty::after { content: "●"; font-size: 0.6rem; color: var(--accent); margin-left: 2px; }
+
+        .tab-close {
+            margin-left: 0.3rem;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0 2px;
+            border-radius: 3px;
+        }
+        .tab-close:hover { background-color: var(--danger); color: #fff; }
+
+        .btn-new-tab {
+            padding: 0.3rem 0.6rem;
+            font-size: 1rem;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+        .btn-new-tab:hover { color: var(--text-bright); }
+
+        /* Find Bar */
+        .find-bar {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.4rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+        .find-bar.hidden { display: none; }
+
+        .input-field {
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+        .input-field:focus { border-color: var(--blue-accent); }
+
+        .find-options {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+        }
+
+        .find-options label {
+            display: flex;
+            align-items: center;
+            gap: 0.2rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        #find-status { color: var(--text-muted); min-width: 80px; text-align: center; }
+
+        /* Workspace */
+        .workspace {
+            flex: 1;
+            display: flex;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--bg-main);
+        }
+
+        .line-numbers {
+            width: 50px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            padding: 0.75rem 0.5rem;
+            text-align: right;
+            user-select: none;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        textarea.editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            padding: 0.75rem 1rem;
+            resize: none;
+            tab-size: 4;
+            white-space: pre;
+            overflow: auto;
+            caret-color: var(--text-bright);
+        }
+
+        .current-line-highlight {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1.6em;
+            background: rgba(56, 139, 253, 0.08);
+            pointer-events: none;
+            z-index: 0;
+            display: none;
+        }
+
+        /* Error Panel */
+        .error-panel {
+            position: absolute;
+            bottom: 28px;
+            left: 0; right: 0;
+            max-height: 120px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            overflow-y: auto;
+            z-index: 10;
+            font-size: 0.8rem;
+            display: none;
+        }
+        .error-panel.active { display: block; }
+        .error-item { color: var(--danger); margin: 2px 0; }
+        .error-item.ok { color: var(--accent); }
+
+        /* Status Bar */
+        footer.status-bar {
+            height: 28px;
+            background-color: var(--bg-panel);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+        .status-section { display: flex; align-items: center; gap: 1rem; }
+        .status-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .status-btn:hover { background: var(--bg-subtle); color: var(--text-bright); }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            backdrop-filter: blur(2px);
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        .modal {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 420px;
+            max-width: 90vw;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-subtle);
+        }
+        .modal-body { padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+        .modal-footer {
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-subtle);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .setting-row label { font-size: 0.85rem; }
+        select.input-field { padding: 0.25rem 0.5rem; }
+
+        .qr-canvas-wrapper {
+            background: #ffffff;
+            padding: 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas#qr-canvas { display: block; image-rendering: pixelated; max-width: 100%; }
+
+        .qr-info { font-size: 0.75rem; color: var(--text-muted); }
+        .qr-text-preview {
+            max-height: 60px; width: 100%; overflow-y: auto;
+            font-size: 0.75rem; font-family: var(--font-mono);
+            background-color: var(--bg-main); border: 1px solid var(--border-color);
+            padding: 0.5rem; border-radius: 4px; word-break: break-all; color: var(--text-muted);
+        }
+
+
+        /* Find highlight overlay */
+        .editor-highlight {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            margin: 0;
+            border: none;
+            outline: none;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.6;
+            padding: 0.75rem 1rem;
+            tab-size: 4;
+            white-space: pre;
+            overflow: auto;
+            word-wrap: normal;
+            word-break: keep-all;
+            z-index: 1;
+            pointer-events: none;
+            color: transparent;
+            background: transparent;
+        }
+
+        .find-mark {
+            background-color: rgba(235, 203, 22, 0.25);
+            border-radius: 2px;
+        }
+        .find-mark-current {
+            background-color: rgba(235, 203, 22, 0.6);
+            border-radius: 2px;
+        }
+
+        [data-theme="light"] .find-mark {
+            background-color: rgba(154, 103, 0, 0.2);
+        }
+        [data-theme="light"] .find-mark-current {
+            background-color: rgba(154, 103, 0, 0.5);
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body data-theme="light">
+
+<header>
+    <div class="brand">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <span>テキストエディタ</span>
+        <span class="badge">完全ローカル</span>
+    </div>
+
+    <div class="toolbar">
+        <button class="btn" id="btn-open" title="ファイルを開く (Ctrl+O)">開く</button>
+        <input type="file" id="file-input" class="hidden" accept=".txt,.md,.json,.js,.css,.html,.csv,*">
+        <button class="btn btn-primary" id="btn-save" title="ファイルを保存 (Ctrl+S)">保存</button>
+
+        <div class="divider"></div>
+
+        <button class="btn" id="btn-undo" title="元に戻す (Ctrl+Z)">元に戻す</button>
+        <button class="btn" id="btn-redo" title="やり直し (Ctrl+Y)">やり直し</button>
+
+        <div class="divider"></div>
+
+        <button class="btn" id="btn-copy">コピー</button>
+        <button class="btn" id="btn-cut">切り取り</button>
+        <button class="btn" id="btn-paste">貼り付け</button>
+
+        <div class="divider"></div>
+
+        <button class="btn" id="btn-find-toggle" title="検索・置換 (Ctrl+F)">検索・置換</button>
+        <button class="btn" id="btn-settings" title="設定">設定</button>
+
+        <div class="divider"></div>
+
+        <button class="btn btn-qr" id="btn-qr-generate" title="QR生成 (Ctrl+Q)">QR生成</button>
+        <button class="btn" id="btn-theme-toggle" title="ダーク/ライト">☀️</button>
+    </div>
+</header>
+
+<!-- Tab Bar -->
+<div class="tab-bar" id="tab-bar">
+    <button class="btn-new-tab" id="btn-new-tab" title="新規タブ">+</button>
+</div>
+
+<!-- Find & Replace Bar -->
+<div class="find-bar hidden" id="find-bar">
+    <span>検索:</span>
+    <input type="text" id="find-input" class="input-field" placeholder="検索文字列">
+    <span>置換:</span>
+    <input type="text" id="replace-input" class="input-field" placeholder="置換文字列">
+    <button class="btn" id="btn-find-prev">前へ</button>
+    <button class="btn" id="btn-find-next">次へ</button>
+    <button class="btn" id="btn-replace">置換</button>
+    <button class="btn" id="btn-replace-all">すべて置換</button>
+    <button class="btn" id="btn-replace-undo" title="直前の置換を取り消し">置換戻し</button>
+    <div class="find-options">
+        <label><input type="checkbox" id="opt-regex"> 正規表現</label>
+        <label><input type="checkbox" id="opt-case"> 大小区別</label>
+    </div>
+    <span id="find-status"></span>
+    <button class="btn" id="btn-find-close" style="margin-left:auto;">✕</button>
+</div>
+
+<!-- Main Workspace -->
+<main class="workspace" id="drop-zone">
+    <div class="line-numbers" id="line-numbers">1</div>
+    <div class="editor-container">
+        <div class="current-line-highlight" id="current-line-highlight"></div>
+        <pre class="editor-highlight" id="highlight-layer" aria-hidden="true"><code id="highlight-code"></code></pre>
+        <textarea class="editor" id="editor" spellcheck="false" placeholder="ここにテキストを入力、またはファイルをドラッグ＆ドロップ..."></textarea>
+    </div>
+</main>
+
+<!-- Error Panel -->
+<div class="error-panel" id="error-panel"></div>
+
+<!-- Status Bar -->
+<footer class="status-bar">
+    <div class="status-section">
+        <span id="stat-lines">1 行</span>
+        <span id="stat-chars">0 文字</span>
+        <span id="stat-selected">選択: 0 文字</span>
+        <button class="status-btn" id="btn-goto-line" title="行へ移動 (Ctrl+G)">行: 1</button>
+    </div>
+    <div class="status-section">
+        <button class="status-btn" id="btn-wrap-toggle" title="折り返し切替">折り返し: オフ</button>
+        <button class="status-btn" id="btn-errors" title="構文エラー確認">エラー: なし</button>
+    </div>
+</footer>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qr-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>QRコード表示</span>
+            <button class="btn" id="qr-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="qr-canvas-wrapper">
+                <canvas id="qr-canvas"></canvas>
+            </div>
+            <div class="qr-info" id="qr-info"></div>
+            <div class="qr-text-preview" id="qr-text-preview"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="btn-qr-download">画像保存 (PNG)</button>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal">
+        <div class="modal-header">
+            <span>設定</span>
+            <button class="btn" id="settings-modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="setting-row">
+                <label>フォントサイズ</label>
+                <div>
+                    <input type="range" id="setting-fontsize" min="10" max="24" value="14" style="width:120px;vertical-align:middle;">
+                    <span id="fontsize-val" style="min-width:32px;display:inline-block;text-align:right;">14px</span>
+                </div>
+            </div>
+            <div class="setting-row">
+                <label>タブ幅</label>
+                <select class="input-field" id="setting-tabsize">
+                    <option value="2">2</option>
+                    <option value="4" selected>4</option>
+                    <option value="8">8</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="btn-settings-ok">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- Go to Line Modal -->
+<div class="modal-overlay" id="goto-modal">
+    <div class="modal" style="width: 280px;">
+        <div class="modal-header"><span>行へ移動</span></div>
+        <div class="modal-body">
+            <input type="number" id="goto-input" class="input-field" placeholder="行番号" style="width:100%;">
+        </div>
+        <div class="modal-footer">
+            <button class="btn" id="btn-goto-cancel">キャンセル</button>
+            <button class="btn btn-primary" id="btn-goto-ok">移動</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // ========================================================================
+    // QR Code Generator Engine (ISO/IEC 18004) - 元のまま
+    // ========================================================================
+    function qrGenFactory() {
+        var ECC_PER_BLOCK = [
+            [-1,7,10,15,20,26,18,20,24,30,18,20,24,26,30,22,24,28,30,28,28,28,28,30,30,26,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+            [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28],
+            [-1,13,22,18,26,18,24,18,22,20,24,28,26,24,20,30,24,28,28,26,30,28,30,30,30,30,28,30,30,30,30,30,30,30,30,30,30,30,30,30,30],
+            [-1,17,28,22,16,22,28,26,26,24,28,24,28,22,24,24,30,28,28,26,28,30,24,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30,30]
+        ];
+        var NUM_BLOCKS = [
+            [-1,1,1,1,1,1,2,2,2,2,4,4,4,4,4,6,6,6,6,7,8,8,9,9,10,12,12,12,13,14,15,16,17,18,19,19,20,21,22,24,25],
+            [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49],
+            [-1,1,1,2,2,4,4,6,6,8,8,8,10,12,16,12,17,16,18,21,20,23,23,25,27,29,34,34,35,38,40,43,45,48,51,53,56,59,62,65,68],
+            [-1,1,1,2,4,4,4,5,6,8,8,11,11,16,16,18,16,19,21,25,25,25,34,30,32,35,37,40,42,45,48,51,54,57,60,63,66,70,74,77,81]
+        ];
+        var FORMAT_BITS = [1,0,3,2];
+        var LEVELS = {L:0,M:1,Q:2,H:3};
+        function rawModules(ver) {
+            var r=(16*ver+128)*ver+64;
+            if(ver>=2){var na=Math.floor(ver/7)+2; r-=(25*na-10)*na-55; if(ver>=7) r-=36;}
+            return r;
+        }
+        function dataCodewords(ver,ecl){return Math.floor(rawModules(ver)/8)-ECC_PER_BLOCK[ecl][ver]*NUM_BLOCKS[ecl][ver];}
+        function rsMul(x,y){var z=0;for(var i=7;i>=0;i--){z=(z<<1)^((z>>>7)*0x11D);z^=((y>>>i)&1)*x;}return z;}
+        function rsDivisor(degree){var r=[],i,j;for(i=0;i<degree-1;i++)r.push(0);r.push(1);var root=1;for(i=0;i<degree;i++){for(j=0;j<r.length;j++){r[j]=rsMul(r[j],root);if(j+1<r.length)r[j]^=r[j+1];}root=rsMul(root,0x02);}return r;}
+        function rsRemainder(data,divisor){var r=divisor.map(function(){return 0;});data.forEach(function(b){var f=b^r.shift();r.push(0);divisor.forEach(function(c,i){r[i]^=rsMul(c,f);});});return r;}
+        function addEccAndInterleave(data,ver,ecl){var numBlocks=NUM_BLOCKS[ecl][ver],eccLen=ECC_PER_BLOCK[ecl][ver];var raw=Math.floor(rawModules(ver)/8);var numShort=numBlocks-raw%numBlocks;var shortLen=Math.floor(raw/numBlocks);var blocks=[],div=rsDivisor(eccLen),i,k=0;for(i=0;i<numBlocks;i++){var dat=data.slice(k,k+shortLen-eccLen+(i<numShort?0:1));k+=dat.length;var ecc=rsRemainder(dat,div);if(i<numShort)dat.push(0);blocks.push(dat.concat(ecc));}var result=[];for(i=0;i<blocks[0].length;i++){for(var j=0;j<blocks.length;j++){if(i!==shortLen-eccLen||j>=numShort)result.push(blocks[j][i]);}}return result;}
+        function toUtf8(str){if(typeof TextEncoder!=='undefined')return Array.prototype.slice.call(new TextEncoder().encode(str));var s=unescape(encodeURIComponent(str)),out=[];for(var i=0;i<s.length;i++)out.push(s.charCodeAt(i));return out;}
+        function makeDataCodewords(bytes,ver,ecl){var bits=[];function put(val,len){for(var i=len-1;i>=0;i--)bits.push((val>>>i)&1);}put(4,4);put(bytes.length,ver<=9?8:16);bytes.forEach(function(b){put(b,8);});var cap=dataCodewords(ver,ecl)*8;put(0,Math.min(4,cap-bits.length));while(bits.length%8!==0)bits.push(0);var cw=[];for(var i=0;i<bits.length;i+=8){var v=0;for(var j=0;j<8;j++)v=(v<<1)|bits[i+j];cw.push(v);}for(var pad=0xEC;cw.length<cap/8;pad^=0xEC^0x11)cw.push(pad);return cw;}
+        function buildMatrix(codewords,ver,ecl){var size=ver*4+17,x,y,i;var mod=[],func=[];for(y=0;y<size;y++){mod.push(new Array(size).fill(false));func.push(new Array(size).fill(false));}function setF(x,y,dark){mod[y][x]=dark;func[y][x]=true;}function bit(v,i){return((v>>>i)&1)!==0;}function drawFormat(mask){var data=(FORMAT_BITS[ecl]<<3)|mask,rem=data,k;for(k=0;k<10;k++)rem=(rem<<1)^((rem>>>9)*0x537);var bits=((data<<10)|rem)^0x5412;for(k=0;k<=5;k++)setF(8,k,bit(bits,k));setF(8,7,bit(bits,6));setF(8,8,bit(bits,7));setF(7,8,bit(bits,8));for(k=9;k<15;k++)setF(14-k,8,bit(bits,k));for(k=0;k<8;k++)setF(size-1-k,8,bit(bits,k));for(k=8;k<15;k++)setF(8,size-15+k,bit(bits,k));setF(8,size-8,true);}function drawVersion(){if(ver<7)return;var rem=ver,k;for(k=0;k<12;k++)rem=(rem<<1)^((rem>>>11)*0x1F25);var bits=(ver<<12)|rem;for(k=0;k<18;k++){var a=size-11+k%3,b=Math.floor(k/3);setF(a,b,bit(bits,k));setF(b,a,bit(bits,k));}}function drawFinder(cx,cy){for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++){var d=Math.max(Math.abs(dx),Math.abs(dy)),xx=cx+dx,yy=cy+dy;if(xx>=0&&xx<size&&yy>=0&&yy<size)setF(xx,yy,d!==2&&d!==4);}}function drawAlign(cx,cy){for(var dy=-2;dy<=2;dy++)for(var dx=-2;dx<=2;dx++)setF(cx+dx,cy+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);}function alignPositions(){if(ver===1)return[];var n=Math.floor(ver/7)+2;var step=(ver===32)?26:Math.ceil((ver*4+4)/(n*2-2))*2;var res=[6];for(var pos=size-7;res.length<n;pos-=step)res.splice(1,0,pos);return res;}for(i=0;i<size;i++){setF(6,i,i%2===0);setF(i,6,i%2===0);}drawFinder(3,3);drawFinder(size-4,3);drawFinder(3,size-4);var ap=alignPositions(),n=ap.length;for(i=0;i<n;i++)for(var j=0;j<n;j++){if(!((i===0&&j===0)||(i===0&&j===n-1)||(i===n-1&&j===0)))drawAlign(ap[i],ap[j]);}drawFormat(0);drawVersion();var idx=0;for(var right=size-1;right>=1;right-=2){if(right===6)right=5;for(var vert=0;vert<size;vert++){for(var jj=0;jj<2;jj++){x=right-jj;var upward=((right+1)&2)===0;y=upward?size-1-vert:vert;if(!func[y][x]&&idx<codewords.length*8){mod[y][x]=bit(codewords[idx>>>3],7-(idx&7));idx++;}}}}function applyMask(m){for(var yy=0;yy<size;yy++)for(var xx=0;xx<size;xx++){var inv;switch(m){case 0:inv=(xx+yy)%2===0;break;case 1:inv=yy%2===0;break;case 2:inv=xx%3===0;break;case 3:inv=(xx+yy)%3===0;break;case 4:inv=(Math.floor(xx/3)+Math.floor(yy/2))%2===0;break;case 5:inv=xx*yy%2+xx*yy%3===0;break;case 6:inv=(xx*yy%2+xx*yy%3)%2===0;break;default:inv=((xx+yy)%2+xx*yy%3)%2===0;}if(!func[yy][xx]&&inv)mod[yy][xx]=!mod[yy][xx];}}function penalty(){var p=0,a,b,run,dark=0;for(a=0;a<size;a++){for(var dir=0;dir<2;dir++){run=1;for(b=1;b<size;b++){var cur=dir?mod[b][a]:mod[a][b];var prev=dir?mod[b-1][a]:mod[a][b-1];if(cur===prev){run++;if(run===5)p+=3;else if(run>5)p++;}else run=1;}}}for(a=0;a<size-1;a++)for(b=0;b<size-1;b++){var c=mod[a][b];if(c===mod[a][b+1]&&c===mod[a+1][b]&&c===mod[a+1][b+1])p+=3;}var pat1=[true,false,true,true,true,false,true,false,false,false,false];var pat2=[false,false,false,false,true,false,true,true,true,false,true];for(a=0;a<size;a++)for(b=0;b<=size-11;b++){var m1=true,m2=true,m3=true,m4=true;for(var t=0;t<11;t++){if(mod[a][b+t]!==pat1[t])m1=false;if(mod[a][b+t]!==pat2[t])m2=false;if(mod[b+t][a]!==pat1[t])m3=false;if(mod[b+t][a]!==pat2[t])m4=false;}p+=40*((m1?1:0)+(m2?1:0)+(m3?1:0)+(m4?1:0));}for(a=0;a<size;a++)for(b=0;b<size;b++)if(mod[a][b])dark++;var total=size*size;p+=Math.floor(Math.abs(dark*20-total*10)/total)*10;return p;}var best=0,bestP=Infinity;for(var m=0;m<8;m++){applyMask(m);drawFormat(m);var pen=penalty();if(pen<bestP){bestP=pen;best=m;}applyMask(m);}applyMask(best);drawFormat(best);return{size:size,modules:mod,mask:best};}
+        function encode(text,level){var bytes=toUtf8(text);var order=['H','Q','M','L'];var start=order.indexOf(level||'M');for(var li=start;li<order.length;li++){var ecl=LEVELS[order[li]];for(var ver=1;ver<=40;ver++){var needBits=4+(ver<=9?8:16)+bytes.length*8;if(needBits<=dataCodewords(ver,ecl)*8){var cw=addEccAndInterleave(makeDataCodewords(bytes,ver,ecl),ver,ecl);var r=buildMatrix(cw,ver,ecl);r.version=ver;r.level=order[li];r.byteLength=bytes.length;return r;}}}return null;}
+        return{encode:encode,capacity:function(ver,level){return dataCodewords(ver,LEVELS[level]);}};
+    }
+    const QRGen=qrGenFactory();
+    const QRCodeEngine={renderToCanvas:function(canvas,text,level){const qr=QRGen.encode(text,level||'M');if(!qr)return null;const quiet=4;const total=qr.size+quiet*2;const scale=Math.max(2,Math.floor(300/total));const px=total*scale;canvas.width=px;canvas.height=px;canvas.style.width=px+'px';canvas.style.height=px+'px';const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,px,px);ctx.fillStyle='#000000';for(let y=0;y<qr.size;y++)for(let x=0;x<qr.size;x++)if(qr.modules[y][x])ctx.fillRect((x+quiet)*scale,(y+quiet)*scale,scale,scale);return qr;}};
+
+    // ========================================================================
+    // DOM refs
+    // ========================================================================
+    const editor=document.getElementById('editor');
+    const lineNumbers=document.getElementById('line-numbers');
+    const fileInput=document.getElementById('file-input');
+    const dropZone=document.getElementById('drop-zone');
+    const tabBar=document.getElementById('tab-bar');
+    const currentLineHighlight=document.getElementById('current-line-highlight');
+    const highlightLayer=document.getElementById('highlight-layer');
+    const highlightCode=document.getElementById('highlight-code');
+    const errorPanel=document.getElementById('error-panel');
+
+    const statLines=document.getElementById('stat-lines');
+    const statChars=document.getElementById('stat-chars');
+    const statSelected=document.getElementById('stat-selected');
+    const btnGotoLine=document.getElementById('btn-goto-line');
+    const btnWrapToggle=document.getElementById('btn-wrap-toggle');
+    const btnErrors=document.getElementById('btn-errors');
+
+    const findBar=document.getElementById('find-bar');
+    const findInput=document.getElementById('find-input');
+    const replaceInput=document.getElementById('replace-input');
+    const findStatus=document.getElementById('find-status');
+    const optRegex=document.getElementById('opt-regex');
+    const optCase=document.getElementById('opt-case');
+
+    const qrModal=document.getElementById('qr-modal');
+    const qrCanvas=document.getElementById('qr-canvas');
+    const qrInfo=document.getElementById('qr-info');
+    const qrTextPreview=document.getElementById('qr-text-preview');
+
+    const settingsModal=document.getElementById('settings-modal');
+    const settingFontsize=document.getElementById('setting-fontsize');
+    const settingTabsize=document.getElementById('setting-tabsize');
+    const fontsizeVal=document.getElementById('fontsize-val');
+
+    const gotoModal=document.getElementById('goto-modal');
+    const gotoInput=document.getElementById('goto-input');
+
+    // ========================================================================
+    // Tab System with Auto-save (localStorage)
+    // ========================================================================
+    let tabs=[];
+    let activeTabId=null;
+    let tabCounter=1;
+
+    function generateId(){ return 'tab_'+(tabCounter++)+'_'+Date.now(); }
+
+    function saveTabs(){
+        const data = tabs.map(t => ({
+            id: t.id,
+            name: t.name,
+            content: t.content,
+            savedContent: t.savedContent,
+            fileHandleName: t.fileHandle ? (t.fileHandle.name || null) : null,
+            dirty: t.dirty
+        }));
+        localStorage.setItem('editor_tabs', JSON.stringify(data));
+        localStorage.setItem('editor_active_tab', activeTabId || '');
+    }
+
+    async function loadTabs(){
+        try{
+            const raw=localStorage.getItem('editor_tabs');
+            if(raw){
+                const parsed=JSON.parse(raw);
+                tabCounter=Math.max(...parsed.map(t=>parseInt(t.id.split('_')[1]||0)))+1;
+                tabs=parsed.map(p=>({
+                    id: p.id,
+                    name: p.name,
+                    content: p.content,
+                    savedContent: p.savedContent,
+                    fileHandle: null,
+                    dirty: p.dirty
+                }));
+            }
+            const act=localStorage.getItem('editor_active_tab');
+            if(tabs.length===0){ createTab(); }
+            else{
+                tabs.forEach(renderTab);
+                const target=act && tabs.find(t=>t.id===act) ? act : tabs[0].id;
+                switchToTab(target, false);
+            }
+        }catch(e){ createTab(); }
+    }
+
+    function createTab(initialText='', name='新規ファイル', fileHandle=null){
+        const id=generateId();
+        const tab={id, name, content: initialText, savedContent: initialText, fileHandle, dirty: false};
+        tabs.push(tab);
+        renderTab(tab);
+        switchToTab(id, false);
+        return tab;
+    }
+
+    function renderTab(tab){
+        const existing=document.getElementById('tab-'+tab.id);
+        if(existing) existing.remove();
+        const el=document.createElement('div');
+        el.className='tab'+(tab.id===activeTabId?' active':'')+(tab.dirty?' dirty':'');
+        el.id='tab-'+tab.id;
+        el.innerHTML='<span class="tab-name">'+escapeHtml(tab.name)+'</span><span class="tab-close" data-id="'+tab.id+'">×</span>';
+        el.addEventListener('click',(e)=>{
+            if(e.target.classList.contains('tab-close')){ e.stopPropagation(); closeTab(tab.id); }
+            else { switchToTab(tab.id); }
+        });
+        tabBar.insertBefore(el, tabBar.lastElementChild);
+    }
+
+    function switchToTab(id, save=true){
+        const prev=tabs.find(t=>t.id===activeTabId);
+        if(prev){ prev.content=editor.value; prev.dirty=prev.content!==prev.savedContent; renderTab(prev); }
+        activeTabId=id;
+        const tab=tabs.find(t=>t.id===id);
+        if(!tab) return;
+        editor.value=tab.content;
+        updateEditorStats();
+        updateCurrentLineHighlight();
+        validateSyntax();
+        tabs.forEach(renderTab);
+        if(save) saveTabs();
+    }
+
+    function closeTab(id){
+        const idx=tabs.findIndex(t=>t.id===id);
+        if(idx<0) return;
+        const tab=tabs[idx];
+        if(tab.dirty){ if(!confirm('「'+tab.name+'」に未保存の変更があります。閉じますか？')) return; }
+        const el=document.getElementById('tab-'+id); if(el) el.remove();
+        tabs.splice(idx,1);
+        if(activeTabId===id){ switchToTab(tabs.length?tabs[Math.max(0,idx-1)].id:createTab().id); }
+        else { saveTabs(); }
+    }
+
+    function updateActiveTabState(){
+        const tab=tabs.find(t=>t.id===activeTabId);
+        if(!tab) return;
+        tab.content=editor.value;
+        const wasDirty=tab.dirty;
+        tab.dirty=tab.content!==tab.savedContent;
+        if(wasDirty!==tab.dirty) renderTab(tab);
+        saveTabs();
+    }
+
+    document.getElementById('btn-new-tab').addEventListener('click',()=>createTab());
+
+    // ========================================================================
+    // Editor core: stats, scroll sync, current line highlight
+    // ========================================================================
+    function updateEditorStats(){
+        const text=editor.value;
+        const lines=text.split('\n');
+        let lineNumHtml='';
+        for(let i=1;i<=lines.length;i++) lineNumHtml+=i+'<br>';
+        lineNumbers.innerHTML=lineNumHtml;
+        statLines.textContent=lines.length+' 行';
+        statChars.textContent=text.length+' 文字';
+        const selLen=editor.selectionEnd-editor.selectionStart;
+        statSelected.textContent='選択: '+selLen+' 文字';
+        const currentLine=text.slice(0,editor.selectionStart).split('\n').length;
+        btnGotoLine.textContent='行: '+currentLine;
+    }
+
+    function updateCurrentLineHighlight(){
+        const text=editor.value;
+        const pos=editor.selectionStart;
+        const lineHeight=parseFloat(getComputedStyle(editor).lineHeight)||(parseFloat(getComputedStyle(editor).fontSize)*1.6);
+        const linesBefore=text.slice(0,pos).split('\n').length-1;
+        const scrollTop=editor.scrollTop;
+        currentLineHighlight.style.display='block';
+        currentLineHighlight.style.top=(linesBefore*lineHeight-scrollTop+editor.offsetTop)+'px';
+        currentLineHighlight.style.height=lineHeight+'px';
+    }
+
+    editor.addEventListener('scroll',()=>{
+        lineNumbers.scrollTop=editor.scrollTop;
+        highlightLayer.scrollTop=editor.scrollTop;
+        highlightLayer.scrollLeft=editor.scrollLeft;
+        updateCurrentLineHighlight();
+    });
+
+    function onEditorInput(){
+        updateEditorStats();
+        updateCurrentLineHighlight();
+        updateActiveTabState();
+        validateSyntax();
+        if(!findBar.classList.contains('hidden')) updateFindHighlight(currentFindIndex);
+    }
+    editor.addEventListener('input',onEditorInput);
+    editor.addEventListener('keyup',()=>{updateEditorStats();updateCurrentLineHighlight();});
+    editor.addEventListener('click',()=>{updateEditorStats();updateCurrentLineHighlight();});
+    editor.addEventListener('select',updateEditorStats);
+
+    // ========================================================================
+    // File I/O with File System Access API
+    // ========================================================================
+    function decodeBuffer(buf){
+        const u8=new Uint8Array(buf);
+        if(u8[0]===0xEF&&u8[1]===0xBB&&u8[2]===0xBF) return new TextDecoder('utf-8').decode(u8.subarray(3));
+        if(u8[0]===0xFF&&u8[1]===0xFE) return new TextDecoder('utf-16le').decode(u8.subarray(2));
+        if(u8[0]===0xFE&&u8[1]===0xFF) return new TextDecoder('utf-16be').decode(u8.subarray(2));
+        const candidates=['utf-8','shift_jis','euc-jp'];
+        for(const enc of candidates){ try{ return new TextDecoder(enc,{fatal:true}).decode(u8); }catch(err){} }
+        return new TextDecoder('utf-8').decode(u8);
+    }
+
+    async function openFile(fileHandle=null){
+        if(!fileHandle&&'showOpenFilePicker' in window){
+            try{
+                const handles=await window.showOpenFilePicker({types:[{description:'Text files',accept:{'text/*':['.txt','.md','.json','.js','.css','.html']}}]});
+                if(handles&&handles.length) fileHandle=handles[0];
+            }catch(e){}
+        }
+        if(fileHandle){
+            const file=await fileHandle.getFile();
+            const buf=await file.arrayBuffer();
+            const text=decodeBuffer(buf);
+            const tab=createTab(text, file.name, fileHandle);
+            tab.savedContent=text; tab.dirty=false;
+            renderTab(tab); saveTabs();
+            return;
+        }
+        fileInput.click();
+    }
+
+    fileInput.addEventListener('change',async(e)=>{
+        const file=e.target.files[0]; if(!file) return;
+        const buf=await file.arrayBuffer();
+        const text=decodeBuffer(buf);
+        const tab=createTab(text, file.name, null);
+        tab.savedContent=text; tab.dirty=false;
+        renderTab(tab); saveTabs();
+        fileInput.value='';
+    });
+
+    async function saveFile(){
+        const tab=tabs.find(t=>t.id===activeTabId); if(!tab) return;
+        const text=editor.value;
+        if(tab.fileHandle&&'showSaveFilePicker' in window){
+            try{
+                const writable=await tab.fileHandle.createWritable();
+                const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+                await writable.write(blob);
+                await writable.close();
+                tab.savedContent=text; tab.dirty=false; renderTab(tab); saveTabs();
+                showError('保存しました（上書き）','ok');
+                return;
+            }catch(e){ /* fallback */ }
+        }
+        const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=tab.name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        tab.savedContent=text; tab.dirty=false; renderTab(tab); saveTabs();
+        showError('ダウンロード保存しました','ok');
+    }
+
+    document.getElementById('btn-open').addEventListener('click',()=>openFile());
+    document.getElementById('btn-save').addEventListener('click',saveFile);
+
+    // Drag & Drop
+    dropZone.addEventListener('dragover',(e)=>{e.preventDefault();dropZone.style.opacity='0.7';});
+    dropZone.addEventListener('dragleave',()=>{dropZone.style.opacity='1';});
+    dropZone.addEventListener('drop',async(e)=>{
+        e.preventDefault(); dropZone.style.opacity='1';
+        if(e.dataTransfer.files.length>0){
+            const file=e.dataTransfer.files[0];
+            const buf=await file.arrayBuffer();
+            const text=decodeBuffer(buf);
+            const tab=createTab(text,file.name,null);
+            tab.savedContent=text; tab.dirty=false;
+            renderTab(tab); saveTabs();
+        }
+    });
+
+    // ========================================================================
+    // Find & Replace (regex, case, count, undo replace)
+    // ========================================================================
+    let lastReplaceState=null;
+
+    function getFindRegex(){
+        const query=findInput.value; if(!query) return null;
+        const flags=(optCase.checked?'':'i')+'g';
+        if(optRegex.checked){ try{ return new RegExp(query,flags); }catch(e){ return null; } }
+        return new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),flags);
+    }
+
+    function countMatches(){
+        const re=getFindRegex(); if(!re) return 0;
+        const m=editor.value.match(re); return m?m.length:0;
+    }
+
+    function updateFindStatus(){ findStatus.textContent='一致: '+countMatches(); updateFindHighlight(currentFindIndex); }
+    findInput.addEventListener('input',updateFindStatus);
+    optRegex.addEventListener('change',updateFindStatus);
+    optCase.addEventListener('change',updateFindStatus);
+
+    function escapeHtml(text){
+        const div=document.createElement('div');
+        div.textContent=text;
+        return div.innerHTML;
+    }
+
+    function updateFindHighlight(currentIndex){
+        if(findBar.classList.contains('hidden')){
+            highlightCode.innerHTML=''; return;
+        }
+        const re=getFindRegex(); if(!re){ highlightCode.innerHTML=escapeHtml(editor.value); return; }
+        const text=editor.value;
+        let html='';
+        let lastIndex=0;
+        let idx=0;
+        re.lastIndex=0;
+        let m;
+        while((m=re.exec(text))!==null){
+            html+=escapeHtml(text.slice(lastIndex,m.index));
+            const cls=(idx===currentIndex)?'find-mark-current':'find-mark';
+            html+='<span class="'+cls+'">'+escapeHtml(m[0])+'</span>';
+            lastIndex=m.index+m[0].length;
+            idx++;
+            if(m.index===re.lastIndex) re.lastIndex++;
+        }
+        html+=escapeHtml(text.slice(lastIndex));
+        highlightCode.innerHTML=html;
+    }
+
+    let currentFindIndex=-1;
+
+    function findAllMatches(){
+        const re=getFindRegex(); if(!re) return [];
+        const text=editor.value;
+        const matches=[];
+        re.lastIndex=0;
+        let m;
+        while((m=re.exec(text))!==null){
+            matches.push({index:m.index,text:m[0]});
+            if(m.index===re.lastIndex) re.lastIndex++;
+        }
+        return matches;
+    }
+
+    function findNext(direction=1){
+        const matches=findAllMatches();
+        if(!matches.length){ currentFindIndex=-1; updateFindHighlight(-1); return; }
+        const pos=editor.selectionEnd;
+        let nextIdx;
+        if(direction>0){
+            nextIdx=matches.findIndex(m=>m.index>pos);
+            if(nextIdx===-1) nextIdx=0;
+        }else{
+            nextIdx=matches.length-1;
+            for(let i=matches.length-1;i>=0;i--){ if(matches[i].index<pos){ nextIdx=i; break; } }
+        }
+        currentFindIndex=nextIdx;
+        const best=matches[nextIdx];
+        editor.focus();
+        editor.setSelectionRange(best.index,best.index+best.text.length);
+        updateEditorStats();
+        updateFindHighlight(currentFindIndex);
+        // scroll into view
+        const lineHeight=parseFloat(getComputedStyle(editor).lineHeight)||(parseFloat(getComputedStyle(editor).fontSize)*1.6);
+        const lineNum=editor.value.slice(0,best.index).split('\n').length-1;
+        const targetScroll=lineNum*lineHeight - editor.clientHeight/2;
+        editor.scrollTop=Math.max(0,targetScroll);
+        highlightLayer.scrollTop=editor.scrollTop;
+    }
+
+    document.getElementById('btn-find-toggle').addEventListener('click',()=>{findBar.classList.toggle('hidden');if(!findBar.classList.contains('hidden')){findInput.focus();updateFindHighlight(-1);}else{updateFindHighlight(-1);}});
+    document.getElementById('btn-find-close').addEventListener('click',()=>{findBar.classList.add('hidden');updateFindHighlight(-1);});
+    document.getElementById('btn-find-next').addEventListener('click',()=>findNext(1));
+    document.getElementById('btn-find-prev').addEventListener('click',()=>findNext(-1));
+    document.getElementById('btn-replace').addEventListener('click',()=>{
+        const re=getFindRegex(); if(!re) return;
+        const start=editor.selectionStart, end=editor.selectionEnd;
+        const selected=editor.value.slice(start,end);
+        re.lastIndex=0;
+        const m=re.exec(selected);
+        if(m&&m.index===0&&m[0].length===selected.length){
+            lastReplaceState={value:editor.value,start:start,end:end};
+            const rep=selected.replace(re,replaceInput.value);
+            editor.value=editor.value.slice(0,start)+rep+editor.value.slice(end);
+            editor.selectionStart=editor.selectionEnd=start+rep.length;
+            onEditorInput();
+        }
+        findNext(1); updateFindStatus(); updateFindHighlight(currentFindIndex);
+    });
+    document.getElementById('btn-replace-all').addEventListener('click',()=>{
+        const re=getFindRegex(); if(!re) return;
+        lastReplaceState={value:editor.value,start:0,end:editor.value.length};
+        editor.value=editor.value.replace(re,replaceInput.value);
+        onEditorInput(); updateFindStatus(); updateFindHighlight(currentFindIndex); updateFindHighlight(currentFindIndex);
+    });
+    document.getElementById('btn-replace-undo').addEventListener('click',()=>{
+        if(!lastReplaceState) return;
+        editor.value=lastReplaceState.value;
+        editor.selectionStart=lastReplaceState.start; editor.selectionEnd=lastReplaceState.end;
+        onEditorInput(); updateFindStatus(); updateFindHighlight(currentFindIndex);
+    });
+
+    // ========================================================================
+    // Syntax validation (JSON + JS)
+    // ========================================================================
+    function detectLangByName(name){
+        if(/\.json$/i.test(name)) return 'json';
+        if(/\.js$/i.test(name)) return 'js';
+        return null;
+    }
+
+    function validateSyntax(){
+        errorPanel.innerHTML='';
+        const tab=tabs.find(t=>t.id===activeTabId);
+        const lang=tab?detectLangByName(tab.name):null;
+        let errors=[];
+        if(lang==='json'){
+            try{ JSON.parse(editor.value); errors.push({type:'ok',msg:'JSONは有効です'}); }
+            catch(e){ errors.push({type:'error',msg:'JSONエラー: '+e.message}); }
+        } else if(lang==='js'){
+            try{ new Function(editor.value); errors.push({type:'ok',msg:'JavaScript構文は有効です'}); }
+            catch(e){ errors.push({type:'error',msg:'JS構文エラー: '+e.message}); }
+        }
+        errors.forEach(err=>{
+            const div=document.createElement('div');
+            div.className='error-item '+(err.type==='ok'?'ok':'');
+            div.textContent=err.msg;
+            errorPanel.appendChild(div);
+        });
+        const errCount=errors.filter(e=>e.type==='error').length;
+        btnErrors.textContent='エラー: '+(errCount?errCount+'件':'なし');
+    }
+    btnErrors.addEventListener('click',()=>errorPanel.classList.toggle('active'));
+
+    // ========================================================================
+    // Display adjustments (goto line, current line, wrap, font, tabsize)
+    // ========================================================================
+    function applySettings(){
+        const fs=settingFontsize.value+'px';
+        const tw=settingTabsize.value;
+        editor.style.fontSize=fs; lineNumbers.style.fontSize=fs;
+        highlightLayer.style.fontSize=fs; highlightLayer.style.tabSize=tw;
+        fontsizeVal.textContent=fs;
+        editor.style.tabSize=tw;
+        saveTabs();
+    }
+    settingFontsize.addEventListener('input',()=>{fontsizeVal.textContent=settingFontsize.value+'px';});
+
+    document.getElementById('btn-settings').addEventListener('click',()=>{
+        settingsModal.classList.add('active');
+    });
+    document.getElementById('settings-modal-close').addEventListener('click',()=>settingsModal.classList.remove('active'));
+    document.getElementById('btn-settings-ok').addEventListener('click',()=>{
+        applySettings(); settingsModal.classList.remove('active');
+    });
+
+    // Wrap toggle
+    let wrap=false;
+    btnWrapToggle.addEventListener('click',()=>{
+        wrap=!wrap;
+        editor.style.whiteSpace=wrap?'pre-wrap':'pre';
+        highlightLayer.style.whiteSpace=wrap?'pre-wrap':'pre';
+        btnWrapToggle.textContent='折り返し: '+(wrap?'オン':'オフ');
+    });
+
+    // Go to line
+    document.getElementById('btn-goto-line').addEventListener('click',()=>{
+        gotoModal.classList.add('active'); gotoInput.value=''; gotoInput.focus();
+    });
+    document.getElementById('btn-goto-cancel').addEventListener('click',()=>gotoModal.classList.remove('active'));
+    document.getElementById('btn-goto-ok').addEventListener('click',()=>{
+        const n=parseInt(gotoInput.value,10); if(!n) return;
+        const lines=editor.value.split('\n'); let pos=0;
+        for(let i=0;i<lines.length&&i<n-1;i++) pos+=lines[i].length+1;
+        editor.focus(); editor.setSelectionRange(pos,pos);
+        updateEditorStats(); updateCurrentLineHighlight(); gotoModal.classList.remove('active');
+    });
+
+    // ========================================================================
+    // Basic edit actions, QR, theme
+    // ========================================================================
+    document.getElementById('btn-undo').addEventListener('click',()=>document.execCommand('undo'));
+    document.getElementById('btn-redo').addEventListener('click',()=>document.execCommand('redo'));
+    document.getElementById('btn-copy').addEventListener('click',()=>{editor.focus();document.execCommand('copy');});
+    document.getElementById('btn-cut').addEventListener('click',()=>{editor.focus();document.execCommand('cut');});
+    document.getElementById('btn-paste').addEventListener('click',async()=>{
+        editor.focus();
+        if(navigator.clipboard&&navigator.clipboard.readText){
+            try{ const text=await navigator.clipboard.readText(); const start=editor.selectionStart; editor.value=editor.value.slice(0,start)+text+editor.value.slice(editor.selectionEnd); editor.selectionStart=editor.selectionEnd=start+text.length; onEditorInput(); }catch(err){document.execCommand('paste');}
+        }else{document.execCommand('paste');}
+    });
+
+    function triggerQRGeneration(){
+        const sel=editor.value.substring(editor.selectionStart,editor.selectionEnd)||editor.value;
+        if(!sel.trim()){ alert('QRコード化するテキストを入力してください。'); return; }
+        const qr=QRCodeEngine.renderToCanvas(qrCanvas,sel,'M');
+        if(!qr){ alert('文章が長すぎてQRコードにできません。'); return; }
+        const note=qr.level!=='M'?'（誤り訂正を'+qr.level+'に下げました）':'';
+        qrInfo.textContent='型番 '+qr.version+' ／ 誤り訂正 '+qr.level+' ／ '+qr.byteLength+' バイト'+note;
+        qrTextPreview.textContent=sel;
+        qrModal.classList.add('active');
+    }
+    document.getElementById('btn-qr-generate').addEventListener('click',triggerQRGeneration);
+    document.getElementById('qr-modal-close').addEventListener('click',()=>qrModal.classList.remove('active'));
+    document.getElementById('btn-qr-download').addEventListener('click',()=>{
+        const a=document.createElement('a'); a.href=qrCanvas.toDataURL('image/png'); a.download='qrcode.png'; a.click();
+    });
+
+    const themeBtn=document.getElementById('btn-theme-toggle');
+    themeBtn.addEventListener('click',()=>{
+        const isDark=document.body.getAttribute('data-theme')!=='light';
+        if(isDark){ document.body.setAttribute('data-theme','light'); themeBtn.textContent='☀️'; }
+        else { document.body.removeAttribute('data-theme'); themeBtn.textContent='🌙'; }
+    });
+
+    function showError(msg,type='error'){
+        const div=document.createElement('div'); div.className='error-item '+(type==='ok'?'ok':''); div.textContent=msg;
+        errorPanel.appendChild(div); if(!errorPanel.classList.contains('active')) errorPanel.classList.add('active');
+        setTimeout(()=>div.remove(),4000);
+    }
+
+    // ========================================================================
+    // Keyboard shortcuts
+    // ========================================================================
+    document.addEventListener('keydown',(e)=>{
+        if(e.ctrlKey||e.metaKey){
+            if(e.key==='s'){e.preventDefault();saveFile();}
+            else if(e.key==='o'){e.preventDefault();openFile();}
+            else if(e.key==='q'){e.preventDefault();triggerQRGeneration();}
+            else if(e.key==='f'){e.preventDefault();findBar.classList.remove('hidden');findInput.focus();}
+            else if(e.key==='g'){e.preventDefault();gotoModal.classList.add('active');gotoInput.value='';gotoInput.focus();}
+        }
+    });
+
+    // ========================================================================
+    // Init
+    // ========================================================================
+    loadTabs();
+    applySettings();
+    updateEditorStats();
+    updateCurrentLineHighlight();
+    updateFindHighlight(-1);
+})();
+</script>
+</body>
+</html>
