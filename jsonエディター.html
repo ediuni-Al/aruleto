@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Studio - Offline Editor</title>
+    <style>
+        /* Modern System Color Palette & CSS Variables */
+        :root {
+            --bg-main: #f8fafc;
+            --bg-panel: #ffffff;
+            --bg-sidebar: #f1f5f9;
+            --border-color: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #eff6ff;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --success: #10b981;
+            --warning-bg: #fef3c7;
+            --warning-text: #92400e;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            
+            /* Syntax highlighting / Node colors */
+            --node-key: #0f766e;
+            --node-string: #059669;
+            --node-number: #d97706;
+            --node-boolean: #7c3aed;
+            --node-null: #6b7280;
+            
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --bg-main: #0f172a;
+            --bg-panel: #1e293b;
+            --bg-sidebar: #0f172a;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --primary-light: #1e3a8a;
+            --danger: #f87171;
+            --danger-hover: #ef4444;
+            --success: #34d399;
+            --warning-bg: #451a03;
+            --warning-text: #fde68a;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+
+            --node-key: #2dd4bf;
+            --node-string: #34d399;
+            --node-number: #fbbf24;
+            --node-boolean: #a78bfa;
+            --node-null: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        /* Top Header */
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 56px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .brand-badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.4rem;
+            background-color: var(--primary-light);
+            color: var(--primary);
+            border-radius: 4px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* UI Controls */
+        .btn {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 0.4rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--border-color);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+        }
+
+        .btn-danger {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background-color: var(--danger);
+            color: #ffffff;
+        }
+
+        .btn-group {
+            display: flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-group .btn {
+            border: none;
+            border-radius: 0;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .btn-group .btn:last-child {
+            border-right: none;
+        }
+
+        .btn-group .btn.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .divider {
+            width: 1px;
+            height: 24px;
+            background-color: var(--border-color);
+            margin: 0 0.25rem;
+        }
+
+        /* Main Workspace Container */
+        .workspace {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Panels layout */
+        .panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-panel);
+            overflow: hidden;
+            min-width: 250px;
+        }
+
+        .panel-header {
+            background-color: var(--bg-sidebar);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.4rem 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .panel-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        /* Splitter Resizer */
+        .splitter {
+            width: 6px;
+            background-color: var(--border-color);
+            cursor: col-resize;
+            transition: background-color 0.2s;
+            z-index: 10;
+        }
+
+        .splitter:hover, .splitter.dragging {
+            background-color: var(--primary);
+        }
+
+        /* Code Editor Mode */
+        textarea.code-editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            background-color: var(--bg-panel);
+            color: var(--text-main);
+            resize: none;
+            tab-size: 2;
+        }
+
+        /* Tree View Mode */
+        .tree-container {
+            padding: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+
+        .tree-search-bar {
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            background-color: var(--bg-sidebar);
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.35rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-panel);
+            color: var(--text-main);
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+        }
+
+        .tree-node {
+            margin-left: 1.2rem;
+            position: relative;
+        }
+
+        .tree-node.root {
+            margin-left: 0;
+        }
+
+        .node-row {
+            display: flex;
+            align-items: center;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            gap: 0.35rem;
+            min-height: 28px;
+        }
+
+        .node-row:hover {
+            background-color: var(--bg-sidebar);
+        }
+
+        .node-toggle {
+            width: 16px;
+            height: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            border-radius: 3px;
+        }
+
+        .node-toggle:hover {
+            background-color: var(--border-color);
+        }
+
+        .node-key {
+            color: var(--node-key);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .node-colon {
+            color: var(--text-muted);
+        }
+
+        .node-value-input {
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 3px;
+            color: inherit;
+            font-family: inherit;
+            font-size: inherit;
+            padding: 0.1rem 0.3rem;
+            outline: none;
+        }
+
+        .node-value-input:hover {
+            border-color: var(--border-color);
+        }
+
+        .node-value-input:focus {
+            background-color: var(--bg-panel);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px var(--primary-light);
+        }
+
+        .type-string { color: var(--node-string); }
+        .type-number { color: var(--node-number); }
+        .type-boolean { color: var(--node-boolean); }
+        .type-null { color: var(--node-null); }
+
+        .node-meta {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-left: 0.2rem;
+        }
+
+        .node-actions {
+            display: none;
+            margin-left: auto;
+            gap: 0.2rem;
+        }
+
+        .node-row:hover .node-actions {
+            display: flex;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .action-btn:hover {
+            background-color: var(--border-color);
+            color: var(--text-main);
+        }
+
+        .action-btn.delete:hover {
+            background-color: var(--danger);
+            color: #ffffff;
+        }
+
+        /* Type Selector Select Dropdown */
+        .type-selector {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding: 0 0.2rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* Status Footer */
+        footer.status-bar {
+            height: 32px;
+            background-color: var(--bg-sidebar);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex-shrink: 0;
+        }
+
+        .status-message {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--success);
+        }
+
+        .status-indicator.error {
+            background-color: var(--danger);
+        }
+
+        .status-indicator.warning {
+            background-color: #f59e0b;
+        }
+
+        /* Hidden File Input */
+        #file-input {
+            display: none;
+        }
+
+        /* Search Highlight */
+        .search-match {
+            background-color: var(--warning-bg);
+            color: var(--warning-text);
+            border-radius: 2px;
+        }
+
+        /* Modal Dialog */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background-color: var(--bg-panel);
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-header {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .modal-footer {
+            padding: 0.75rem 1rem;
+            background-color: var(--bg-sidebar);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .form-group label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-panel);
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- Header Toolbar -->
+    <header>
+        <div class="brand">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>JSON Studio</span>
+            <span class="brand-badge">OFFLINE</span>
+        </div>
+
+        <div class="toolbar">
+            <!-- File I/O Operations -->
+            <button class="btn" id="btn-open" title="Open Local File">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                Open
+            </button>
+            <input type="file" id="file-input" accept=".json,application/json,text/plain">
+            
+            <button class="btn" id="btn-save" title="Save File to Disk">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                Save
+            </button>
+
+            <div class="divider"></div>
+
+            <!-- Transformations -->
+            <button class="btn" id="btn-prettify" title="Format JSON with 2 Spaces Indent">Prettify</button>
+            <button class="btn" id="btn-minify" title="Minify JSON (Compact)">Minify</button>
+            <button class="btn" id="btn-sort" title="Sort Keys Alphabetically">Sort Keys</button>
+
+            <div class="divider"></div>
+
+            <!-- View Modes Switcher -->
+            <div class="btn-group">
+                <button class="btn active" id="view-split-btn">Split</button>
+                <button class="btn" id="view-tree-btn">Tree</button>
+                <button class="btn" id="view-code-btn">Code</button>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Theme Toggle -->
+            <button class="btn" id="btn-theme" title="Toggle Light/Dark Theme">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Area -->
+    <main class="workspace" id="workspace">
+        
+        <!-- Left Panel: Tree View Editor -->
+        <section class="panel" id="panel-tree">
+            <div class="panel-header">
+                <span>Tree View</span>
+                <span id="tree-node-count">0 nodes</span>
+            </div>
+            <div class="tree-search-bar">
+                <input type="text" id="tree-search" class="search-input" placeholder="Search key or value...">
+                <button class="btn" id="btn-expand-all" title="Expand All Nodes">Expand</button>
+                <button class="btn" id="btn-collapse-all" title="Collapse All Nodes">Collapse</button>
+            </div>
+            <div class="panel-content tree-container" id="tree-root"></div>
+        </section>
+
+        <!-- Splitter Resizer -->
+        <div class="splitter" id="splitter"></div>
+
+        <!-- Right Panel: Code Text Editor -->
+        <section class="panel" id="panel-code">
+            <div class="panel-header">
+                <span>Code Editor</span>
+                <span id="code-stats">0 chars</span>
+            </div>
+            <div class="panel-content">
+                <textarea id="code-textarea" class="code-editor" spellcheck="false" placeholder="Paste or type JSON here..."></textarea>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Status Footer -->
+    <footer class="status-bar">
+        <div class="status-message">
+            <span class="status-indicator" id="status-indicator"></span>
+            <span id="status-text">Ready</span>
+        </div>
+        <div>
+            <span>Encoding: UTF-8</span>
+        </div>
+    </footer>
+
+    <!-- Add Node Modal -->
+    <div class="modal-overlay" id="add-node-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Add New Item</span>
+                <button class="action-btn" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" id="group-key">
+                    <label for="node-key-input">Key Name</label>
+                    <input type="text" id="node-key-input" class="form-control" placeholder="key">
+                </div>
+                <div class="form-group">
+                    <label for="node-type-select">Data Type</label>
+                    <select id="node-type-select" class="form-control">
+                        <option value="string">String</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="object">Object {}</option>
+                        <option value="array">Array []</option>
+                        <option value="null">Null</option>
+                    </select>
+                </div>
+                <div class="form-group" id="group-value">
+                    <label for="node-val-input">Value</label>
+                    <input type="text" id="node-val-input" class="form-control" placeholder="value">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="modal-submit">Add Node</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        (function() {
+            'use strict';
+
+            // Initial Default JSON Sample
+            const initialData = {
+                "appName": "JSON Studio",
+                "version": 1.0,
+                "offline": true,
+                "features": [
+                    "Tree View Editing",
+                    "Code Text Synchronize",
+                    "Client-side File I/O",
+                    "Sorting & Formatting"
+                ],
+                "settings": {
+                    "theme": "light",
+                    "autoPrettify": true,
+                    "maxLines": 1000
+                },
+                "metadata": null
+            };
+
+            // Global App State
+            let jsonState = initialData;
+            let activeView = 'split'; // 'split', 'tree', 'code'
+            let searchFilter = '';
+            let targetAddPath = null; // Target node path for modal insertion
+
+            // DOM Elements
+            const codeTextarea = document.getElementById('code-textarea');
+            const treeRoot = document.getElementById('tree-root');
+            const statusIndicator = document.getElementById('status-indicator');
+            const statusText = document.getElementById('status-text');
+            const treeSearchInput = document.getElementById('tree-search');
+            const codeStats = document.getElementById('code-stats');
+            const treeNodeCount = document.getElementById('tree-node-count');
+            const fileInput = document.getElementById('file-input');
+
+            // Modal Elements
+            const addNodeModal = document.getElementById('add-node-modal');
+            const nodeKeyInput = document.getElementById('node-key-input');
+            const nodeTypeSelect = document.getElementById('node-type-select');
+            const nodeValInput = document.getElementById('node-val-input');
+            const groupKey = document.getElementById('group-key');
+            const groupValue = document.getElementById('group-value');
+
+            // Panels & Splitter
+            const panelTree = document.getElementById('panel-tree');
+            const panelCode = document.getElementById('panel-code');
+            const splitter = document.getElementById('splitter');
+            const workspace = document.getElementById('workspace');
+
+            // ==========================================
+            // Initialization
+            // ==========================================
+            function init() {
+                // Initial sync to code editor
+                codeTextarea.value = JSON.stringify(jsonState, null, 2);
+                updateStats();
+                renderTree();
+                setupEventListeners();
+                setupResizer();
+            }
+
+            // ==========================================
+            // State Synchronization & Parsing
+            // ==========================================
+            function updateStateFromCode() {
+                const text = codeTextarea.value.trim();
+                if (!text) {
+                    jsonState = {};
+                    setStatus(true, 'Empty JSON');
+                    renderTree();
+                    return;
+                }
+
+                try {
+                    jsonState = JSON.parse(text);
+                    setStatus(true, 'Valid JSON');
+                    renderTree();
+                    updateStats();
+                } catch (err) {
+                    setStatus(false, 'Syntax Error: ' + err.message);
+                }
+            }
+
+            function updateCodeFromState() {
+                try {
+                    codeTextarea.value = JSON.stringify(jsonState, null, 2);
+                    setStatus(true, 'Valid JSON');
+                    updateStats();
+                } catch (err) {
+                    setStatus(false, 'Error serializing JSON: ' + err.message);
+                }
+            }
+
+            function setStatus(isValid, msg) {
+                if (isValid) {
+                    statusIndicator.className = 'status-indicator';
+                    statusText.textContent = msg;
+                } else {
+                    statusIndicator.className = 'status-indicator error';
+                    statusText.textContent = msg;
+                }
+            }
+
+            function updateStats() {
+                const text = codeTextarea.value;
+                codeStats.textContent = `${text.length} chars | ${text.split('\n').length} lines`;
+            }
+
+            // ==========================================
+            // Tree View Rendering Logic
+            // ==========================================
+            function renderTree() {
+                treeRoot.innerHTML = '';
+                let totalNodes = 0;
+
+                function buildNodeDom(key, value, path) {
+                    totalNodes++;
+                    const type = getValueType(value);
+                    const isExpandable = type === 'object' || type === 'array';
+                    
+                    const nodeEl = document.createElement('div');
+                    nodeEl.className = `tree-node ${path.length === 0 ? 'root' : ''}`;
+
+                    const rowEl = document.createElement('div');
+                    rowEl.className = 'node-row';
+
+                    // Toggle Button for objects/arrays
+                    const toggleEl = document.createElement('span');
+                    toggleEl.className = 'node-toggle';
+                    if (isExpandable) {
+                        toggleEl.textContent = '▼';
+                        toggleEl.onclick = (e) => {
+                            e.stopPropagation();
+                            const childrenContainer = nodeEl.querySelector('.node-children');
+                            if (childrenContainer) {
+                                const isHidden = childrenContainer.classList.toggle('hidden');
+                                toggleEl.textContent = isHidden ? '▶' : '▼';
+                            }
+                        };
+                    }
+                    rowEl.appendChild(toggleEl);
+
+                    // Key Element (if in object context or root key)
+                    if (key !== null) {
+                        const keyEl = document.createElement('span');
+                        keyEl.className = 'node-key';
+                        keyEl.textContent = typeof key === 'number' ? `[${key}]` : `"${key}"`;
+                        rowEl.appendChild(keyEl);
+
+                        const colonEl = document.createElement('span');
+                        colonEl.className = 'node-colon';
+                        colonEl.textContent = ':';
+                        rowEl.appendChild(colonEl);
+                    }
+
+                    // Value Rendering or Inline Controls
+                    if (isExpandable) {
+                        const keysCount = value !== null ? Object.keys(value).length : 0;
+                        const metaEl = document.createElement('span');
+                        metaEl.className = 'node-meta';
+                        metaEl.textContent = type === 'array' ? `Array[${keysCount}]` : `Object{${keysCount}}`;
+                        rowEl.appendChild(metaEl);
+                    } else {
+                        // Editable Value Input
+                        const valInput = document.createElement('input');
+                        valInput.className = `node-value-input type-${type}`;
+                        valInput.value = type === 'string' ? value : String(value);
+                        
+                        valInput.onchange = (e) => {
+                            let newVal = e.target.value;
+                            let parsedVal = newVal;
+
+                            if (type === 'number') parsedVal = Number(newVal);
+                            else if (type === 'boolean') parsedVal = newVal.toLowerCase() === 'true';
+                            else if (type === 'null') parsedVal = null;
+                            
+                            setPathValue(jsonState, path, parsedVal);
+                            updateCodeFromState();
+                        };
+                        rowEl.appendChild(valInput);
+                    }
+
+                    // Type Change Selector dropdown
+                    const typeSelect = document.createElement('select');
+                    typeSelect.className = 'type-selector';
+                    ['string', 'number', 'boolean', 'object', 'array', 'null'].forEach(t => {
+                        const opt = document.createElement('option');
+                        opt.value = t;
+                        opt.textContent = t;
+                        if (t === type) opt.selected = true;
+                        typeSelect.appendChild(opt);
+                    });
+
+                    typeSelect.onchange = (e) => {
+                        const newType = e.target.value;
+                        let defaultVal = "";
+                        if (newType === 'number') defaultVal = 0;
+                        if (newType === 'boolean') defaultVal = true;
+                        if (newType === 'object') defaultVal = {};
+                        if (newType === 'array') defaultVal = [];
+                        if (newType === 'null') defaultVal = null;
+
+                        setPathValue(jsonState, path, defaultVal);
+                        updateCodeFromState();
+                        renderTree();
+                    };
+                    rowEl.appendChild(typeSelect);
+
+                    // Actions (Add child / Delete key)
+                    const actionsEl = document.createElement('div');
+                    actionsEl.className = 'node-actions';
+
+                    if (isExpandable) {
+                        const addBtn = document.createElement('button');
+                        addBtn.className = 'action-btn';
+                        addBtn.textContent = '+ Add';
+                        addBtn.title = 'Add child node';
+                        addBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            openAddNodeModal(path, type);
+                        };
+                        actionsEl.appendChild(addBtn);
+                    }
+
+                    if (path.length > 0) {
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'action-btn delete';
+                        delBtn.textContent = '✕';
+                        delBtn.title = 'Delete node';
+                        delBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            deletePathValue(jsonState, path);
+                            updateCodeFromState();
+                            renderTree();
+                        };
+                        actionsEl.appendChild(delBtn);
+                    }
+
+                    rowEl.appendChild(actionsEl);
+                    nodeEl.appendChild(rowEl);
+
+                    // Render Children recursively
+                    if (isExpandable && value !== null) {
+                        const childrenContainer = document.createElement('div');
+                        childrenContainer.className = 'node-children';
+
+                        const keys = Object.keys(value);
+                        keys.forEach(childKey => {
+                            const childPath = [...path, type === 'array' ? parseInt(childKey, 10) : childKey];
+                            const childValue = value[childKey];
+
+                            // Search Filter application
+                            if (searchFilter) {
+                                const keyMatch = String(childKey).toLowerCase().includes(searchFilter);
+                                const valMatch = typeof childValue !== 'object' && String(childValue).toLowerCase().includes(searchFilter);
+                                if (!keyMatch && !valMatch && typeof childValue !== 'object') {
+                                    return;
+                                }
+                            }
+
+                            childrenContainer.appendChild(buildNodeDom(type === 'array' ? parseInt(childKey, 10) : childKey, childValue, childPath));
+                        });
+
+                        nodeEl.appendChild(childrenContainer);
+                    }
+
+                    return nodeEl;
+                }
+
+                treeRoot.appendChild(buildNodeDom(null, jsonState, []));
+                treeNodeCount.textContent = `${totalNodes} nodes`;
+            }
+
+            // Helpers for Path Mutation
+            function getValueType(val) {
+                if (val === null) return 'null';
+                if (Array.isArray(val)) return 'array';
+                return typeof val;
+            }
+
+            function setPathValue(obj, path, value) {
+                let current = obj;
+                for (let i = 0; i < path.length - 1; i++) {
+                    current = current[path[i]];
+                }
+                current[path[path.length - 1]] = value;
+            }
+
+            function deletePathValue(obj, path) {
+                let current = obj;
+                for (let i = 0; i < path.length - 1; i++) {
+                    current = current[path[i]];
+                }
+                const lastKey = path[path.length - 1];
+                if (Array.isArray(current)) {
+                    current.splice(lastKey, 1);
+                } else {
+                    delete current[lastKey];
+                }
+            }
+
+            // ==========================================
+            // Add Node Modal Dialog Handling
+            // ==========================================
+            function openAddNodeModal(path, parentType) {
+                targetAddPath = { path, parentType };
+                nodeKeyInput.value = '';
+                nodeValInput.value = '';
+                nodeTypeSelect.value = 'string';
+                
+                if (parentType === 'array') {
+                    groupKey.style.display = 'none';
+                } else {
+                    groupKey.style.display = 'flex';
+                }
+                
+                toggleModalValueInput('string');
+                addNodeModal.classList.add('active');
+            }
+
+            function closeModal() {
+                addNodeModal.classList.remove('active');
+            }
+
+            function toggleModalValueInput(type) {
+                if (type === 'object' || type === 'array') {
+                    groupValue.style.display = 'none';
+                } else {
+                    groupValue.style.display = 'flex';
+                }
+            }
+
+            nodeTypeSelect.onchange = (e) => {
+                toggleModalValueInput(e.target.value);
+            };
+
+            document.getElementById('modal-submit').onclick = () => {
+                if (!targetAddPath) return;
+
+                const { path, parentType } = targetAddPath;
+                const type = nodeTypeSelect.value;
+                const rawVal = nodeValInput.value;
+                let parsedVal = rawVal;
+
+                if (type === 'number') parsedVal = Number(rawVal) || 0;
+                else if (type === 'boolean') parsedVal = rawVal.toLowerCase() === 'true';
+                else if (type === 'object') parsedVal = {};
+                else if (type === 'array') parsedVal = [];
+                else if (type === 'null') parsedVal = null;
+
+                let targetObj = jsonState;
+                for (let k of path) {
+                    targetObj = targetObj[k];
+                }
+
+                if (parentType === 'array') {
+                    targetObj.push(parsedVal);
+                } else {
+                    const key = nodeKeyInput.value.trim() || 'newKey';
+                    targetObj[key] = parsedVal;
+                }
+
+                updateCodeFromState();
+                renderTree();
+                closeModal();
+            };
+
+            document.getElementById('modal-close').onclick = closeModal;
+            document.getElementById('modal-cancel').onclick = closeModal;
+
+            // ==========================================
+            // Action Features: Sort, Minify, Prettify
+            // ==========================================
+            function sortObjectAlphabetically(obj) {
+                if (Array.isArray(obj)) {
+                    return obj.map(sortObjectAlphabetically);
+                } else if (obj !== null && typeof obj === 'object') {
+                    return Object.keys(obj)
+                        .sort()
+                        .reduce((acc, key) => {
+                            acc[key] = sortObjectAlphabetically(obj[key]);
+                            return acc;
+                        }, {});
+                }
+                return obj;
+            }
+
+            document.getElementById('btn-sort').onclick = () => {
+                jsonState = sortObjectAlphabetically(jsonState);
+                updateCodeFromState();
+                renderTree();
+            };
+
+            document.getElementById('btn-prettify').onclick = () => {
+                updateStateFromCode();
+                codeTextarea.value = JSON.stringify(jsonState, null, 2);
+                updateStats();
+            };
+
+            document.getElementById('btn-minify').onclick = () => {
+                updateStateFromCode();
+                codeTextarea.value = JSON.stringify(jsonState);
+                updateStats();
+            };
+
+            // Expand / Collapse Tree Nodes
+            document.getElementById('btn-expand-all').onclick = () => {
+                document.querySelectorAll('.node-children').forEach(el => el.classList.remove('hidden'));
+                document.querySelectorAll('.node-toggle').forEach(el => {
+                    if (el.textContent === '▶') el.textContent = '▼';
+                });
+            };
+
+            document.getElementById('btn-collapse-all').onclick = () => {
+                document.querySelectorAll('.node-children').forEach(el => el.classList.add('hidden'));
+                document.querySelectorAll('.node-toggle').forEach(el => {
+                    if (el.textContent === '▼') el.textContent = '▶';
+                });
+            };
+
+            // Tree Filter Search Input
+            treeSearchInput.oninput = (e) => {
+                searchFilter = e.target.value.toLowerCase().trim();
+                renderTree();
+            };
+
+            // ==========================================
+            // File I/O Operations (100% Client-side Blob/File)
+            // ==========================================
+            document.getElementById('btn-open').onclick = () => {
+                fileInput.click();
+            };
+
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    codeTextarea.value = event.target.result;
+                    updateStateFromCode();
+                };
+                reader.readAsText(file);
+                fileInput.value = ''; // Reset
+            };
+
+            document.getElementById('btn-save').onclick = () => {
+                const jsonText = codeTextarea.value;
+                const blob = new Blob([jsonText], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'data.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            // ==========================================
+            // View Mode Switcher Logic
+            // ==========================================
+            const viewSplitBtn = document.getElementById('view-split-btn');
+            const viewTreeBtn = document.getElementById('view-tree-btn');
+            const viewCodeBtn = document.getElementById('view-code-btn');
+
+            function setViewMode(mode) {
+                activeView = mode;
+                [viewSplitBtn, viewTreeBtn, viewCodeBtn].forEach(btn => btn.classList.remove('active'));
+
+                if (mode === 'split') {
+                    viewSplitBtn.classList.add('active');
+                    panelTree.style.display = 'flex';
+                    panelCode.style.display = 'flex';
+                    splitter.style.display = 'block';
+                    panelTree.style.flex = '1';
+                    panelCode.style.flex = '1';
+                } else if (mode === 'tree') {
+                    viewTreeBtn.classList.add('active');
+                    panelTree.style.display = 'flex';
+                    panelCode.style.display = 'none';
+                    splitter.style.display = 'none';
+                    panelTree.style.flex = '1';
+                } else if (mode === 'code') {
+                    viewCodeBtn.classList.add('active');
+                    panelTree.style.display = 'none';
+                    panelCode.style.display = 'flex';
+                    splitter.style.display = 'none';
+                    panelCode.style.flex = '1';
+                }
+            }
+
+            viewSplitBtn.onclick = () => setViewMode('split');
+            viewTreeBtn.onclick = () => setViewMode('tree');
+            viewCodeBtn.onclick = () => setViewMode('code');
+
+            // Theme Toggle
+            const btnTheme = document.getElementById('btn-theme');
+            btnTheme.onclick = () => {
+                const currentTheme = document.body.getAttribute('data-theme');
+                if (currentTheme === 'dark') {
+                    document.body.removeAttribute('data-theme');
+                } else {
+                    document.body.setAttribute('data-theme', 'dark');
+                }
+            };
+
+            // ==========================================
+            // Panel Resizer (Splitter) Drag Logic
+            // ==========================================
+            function setupResizer() {
+                let isDragging = false;
+
+                splitter.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    splitter.classList.add('dragging');
+                    document.body.style.cursor = 'col-resize';
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    const containerRect = workspace.getBoundingClientRect();
+                    const offsetLeft = e.clientX - containerRect.left;
+                    
+                    const leftWidthPercent = (offsetLeft / containerRect.width) * 100;
+                    if (leftWidthPercent > 10 && leftWidthPercent < 90) {
+                        panelTree.style.flex = `${leftWidthPercent}`;
+                        panelCode.style.flex = `${100 - leftWidthPercent}`;
+                    }
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        splitter.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                    }
+                });
+            }
+
+            // Event Listener Bindings
+            function setupEventListeners() {
+                codeTextarea.addEventListener('input', updateStateFromCode);
+
+                // Keyboard Shortcuts
+                document.addEventListener('keydown', (e) => {
+                    // Ctrl+S or Cmd+S -> Save
+                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                        e.preventDefault();
+                        document.getElementById('btn-save').click();
+                    }
+                });
+            }
+
+            // Run initialization on load
+            window.onload = init;
+
+        })();
+    </script>
+</body>
+</html>
