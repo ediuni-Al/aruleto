@@ -761,7 +761,6 @@
         async function saveFile() {
             if (isApiSupported && fileHandle) {
                 await saveFileSilent();
-                alert('ファイルを保存しました。');
             } else if (isApiSupported && !fileHandle) {
                 await createNewJsonFile();
             } else {
@@ -778,7 +777,6 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 setFileStatus(true, fallbackFileName);
-                alert(`「${fallbackFileName}」としてダウンロード保存しました。`);
             }
         }
 
