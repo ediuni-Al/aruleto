@@ -99,46 +99,64 @@
         <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/30 z-0 sm:hidden hidden"></div>
 
         <!-- 右側：エディタエリア -->
-        <main class="flex-1 bg-slate-100/70 flex flex-col p-3 sm:p-6 overflow-y-auto">
-            <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col h-full hidden">
+        <main class="flex-1 bg-slate-100/70 flex flex-col p-2 sm:p-6 overflow-y-auto">
+            <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 sm:p-6 flex flex-col h-full hidden">
                 
-                <!-- スマホ用：一覧に戻るボタン -->
-                <div class="sm:hidden pb-3 mb-3 border-b border-slate-100 flex items-center justify-between">
-                    <button onclick="toggleMobileSidebar()" class="text-xs font-bold text-blue-600 flex items-center space-x-1">
-                        <span>← メモ一覧へ戻る</span>
+                <!-- スマホ用：一覧に戻るボタン ＆ 詳細編集トグル -->
+                <div class="sm:hidden pb-2.5 mb-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
+                    <button onclick="toggleMobileSidebar()" class="text-sm font-bold text-blue-600 flex items-center space-x-1 py-1">
+                        <span>← 一覧へ</span>
                     </button>
-                    <button onclick="deleteCurrentMemo()" class="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-50 rounded-lg">削除</button>
-                </div>
-
-                <!-- タイトル入力欄 -->
-                <div class="pb-3 sm:pb-4 border-b border-slate-100">
-                    <label class="block text-xs font-bold text-slate-500 mb-1">タイトル</label>
-                    <input type="text" id="memo-title" oninput="updateCurrentMemo()" placeholder="メモのタイトルを入力..." class="w-full px-3.5 py-2 text-sm sm:text-base font-bold text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
-                </div>
-
-                <!-- 上部メタデータ設定 -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 py-3 sm:py-4 border-b border-slate-100">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">分類タグ</label>
-                        <input type="text" id="memo-category" list="category-suggestions" oninput="updateCurrentMemo()" placeholder="選択または自由入力..." class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
-                        <datalist id="category-suggestions"></datalist>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">重要度</label>
-                        <select id="memo-importance" onchange="updateCurrentMemo()" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-                            <option value="低">🟢 低</option>
-                            <option value="中" selected>🟡 中</option>
-                            <option value="高">🔴 高</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">更新日時</label>
-                        <input type="text" id="memo-date" disabled class="w-full px-3 py-1.5 text-sm border border-slate-100 bg-slate-50 text-slate-500 rounded-xl font-mono">
+                    <div class="flex items-center space-x-2">
+                        <button type="button" id="mobile-meta-toggle-btn" onclick="toggleMobileMetaFields()" class="text-xs font-bold text-slate-600 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                            ✏️ タイトル・タグ編集
+                        </button>
+                        <button onclick="deleteCurrentMemo()" class="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-50 rounded-lg">削除</button>
                     </div>
                 </div>
 
-                <!-- プリセット＆履歴クイック選択チップ -->
-                <div class="pt-3 pb-2 flex flex-wrap items-center gap-1.5" id="category-chips"></div>
+                <!-- スマホ閲覧時用：コンパクトなタイトル・メタ情報ヘッダー -->
+                <div id="mobile-view-header" class="sm:hidden pb-3 mb-2 border-b border-slate-100 shrink-0">
+                    <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        <span id="mobile-view-category" class="text-xs font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-200/70">未分類</span>
+                        <span id="mobile-view-importance" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">重要度: 中</span>
+                        <span id="mobile-view-date" class="text-[11px] text-slate-400 font-mono ml-auto"></span>
+                    </div>
+                    <h2 id="mobile-view-title" class="text-lg font-bold text-slate-900 leading-snug break-words select-text"></h2>
+                </div>
+
+                <!-- タイトル・メタデータ編集ブロック（PCでは常時表示、スマホではデフォルト非表示） -->
+                <div id="meta-edit-section" class="hidden sm:block shrink-0">
+                    <!-- タイトル入力欄 -->
+                    <div class="pb-3 sm:pb-4 border-b border-slate-100">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">タイトル</label>
+                        <input type="text" id="memo-title" oninput="updateCurrentMemo()" placeholder="メモのタイトルを入力..." class="w-full px-3.5 py-2 text-sm sm:text-base font-bold text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                    </div>
+
+                    <!-- 上部メタデータ設定 -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 py-3 sm:py-4 border-b border-slate-100">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">分類タグ</label>
+                            <input type="text" id="memo-category" list="category-suggestions" oninput="updateCurrentMemo()" placeholder="選択または自由入力..." class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                            <datalist id="category-suggestions"></datalist>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">重要度</label>
+                            <select id="memo-importance" onchange="updateCurrentMemo()" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                                <option value="低">🟢 低</option>
+                                <option value="中" selected>🟡 中</option>
+                                <option value="高">🔴 高</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">更新日時</label>
+                            <input type="text" id="memo-date" disabled class="w-full px-3 py-1.5 text-sm border border-slate-100 bg-slate-50 text-slate-500 rounded-xl font-mono">
+                        </div>
+                    </div>
+
+                    <!-- プリセット＆履歴クイック選択チップ -->
+                    <div class="pt-3 pb-2 flex flex-wrap items-center gap-1.5" id="category-chips"></div>
+                </div>
 
                 <!-- 編集 / プレビュー 切り替えタブ -->
                 <div class="flex items-center justify-between pt-2 pb-1.5">
@@ -151,11 +169,11 @@
 
                 <!-- テキストエリア（編集モード） -->
                 <div id="edit-mode-box" class="flex-1 flex flex-col min-h-[250px]">
-                    <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-4 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
+                    <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-3.5 sm:p-4 text-base sm:text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
                 </div>
 
                 <!-- プレビュー表示（閲覧モード） -->
-                <div id="preview-mode-box" class="flex-1 hidden overflow-y-auto p-4 text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-relaxed whitespace-pre-wrap break-words select-text font-sans"></div>
+                <div id="preview-mode-box" class="flex-1 hidden overflow-y-auto p-3.5 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
 
                 <!-- フッター操作 -->
                 <div class="pt-4 hidden sm:flex justify-between items-center border-t border-slate-100 mt-4">
@@ -539,7 +557,34 @@
                 categories.map(c => `<option value="${escapeHtml(c)}" ${c === currentVal ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
         }
 
-        function selectMemo(id) {
+        function syncMobileViewHeader(memo) {
+            const titleEl = document.getElementById('mobile-view-title');
+            const catEl = document.getElementById('mobile-view-category');
+            const impEl = document.getElementById('mobile-view-importance');
+            const dateEl = document.getElementById('mobile-view-date');
+            if (!titleEl) return;
+
+            titleEl.innerText = (memo.title || '').trim() || '（無題のメモ）';
+            catEl.innerText = memo.category || '未分類';
+            impEl.innerText = `重要度: ${memo.importance || '中'}`;
+            impEl.className = `text-xs font-bold px-2 py-0.5 rounded-full ${getImportanceBadge(memo.importance || '中')}`;
+            dateEl.innerText = memo.date || '';
+        }
+
+        function toggleMobileMetaFields(forceOpen = null) {
+            const section = document.getElementById('meta-edit-section');
+            const btn = document.getElementById('mobile-meta-toggle-btn');
+            const shouldOpen = forceOpen !== null ? forceOpen : section.classList.contains('hidden');
+            if (shouldOpen) {
+                section.classList.remove('hidden');
+                btn.innerText = '▲ 閉じる';
+            } else {
+                section.classList.add('hidden');
+                btn.innerText = '✏️ タイトル・タグ編集';
+            }
+        }
+
+        function selectMemo(id, preferEditMode = false) {
             currentMemoId = id;
             const memo = memos.find(m => m.id === id);
             if (!memo) return;
@@ -553,11 +598,19 @@
             document.getElementById('memo-date').value = memo.date || '';
             document.getElementById('memo-content').value = memo.content || '';
             
+            syncMobileViewHeader(memo);
             updateCounters(memo.content || '');
             updatePreviewContent();
             renderMemoList();
 
             if (window.innerWidth < 640) {
+                if (!preferEditMode) {
+                    setEditorMode('preview');
+                    toggleMobileMetaFields(false);
+                } else {
+                    setEditorMode('edit');
+                    toggleMobileMetaFields(true);
+                }
                 const sidebar = document.getElementById('sidebar');
                 if (!sidebar.classList.contains('-translate-x-full')) {
                     toggleMobileSidebar();
@@ -611,7 +664,7 @@
             };
             memos.unshift(newMemo);
             setEditorMode('edit');
-            selectMemo(newMemo.id);
+            selectMemo(newMemo.id, true);
             document.getElementById('memo-title').focus();
             triggerAutoSave();
         }
@@ -629,6 +682,7 @@
             memo.date = getNowTimestamp();
 
             document.getElementById('memo-date').value = memo.date;
+            syncMobileViewHeader(memo);
 
             // 配列自体も最新が先頭になるよう移動
             if (index > 0) {
