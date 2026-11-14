@@ -153,7 +153,7 @@
     </div>
 
     <!-- 設定 & ヘルプ モーダル -->
-    <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[88vh]">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <h3 class="font-bold text-slate-800 text-base">⚙️ 設定 ＆ ヘルプ</h3>
@@ -197,7 +197,7 @@
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方 & ショートカット</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
-                        <li><strong>自動保存:</strong> JSONファイルが接続されている状態では、入力を止めて<strong>1秒後</strong>に自動で上書き保存されます。</li>
+                        <li><strong>自動保存:</strong> JSONファイルが接続されている状態では、入力を止めると<strong>1秒後</strong>に自動で上書き保存されます。</li>
                         <li><strong>リロード時の復元:</strong> 一度紐付けたファイルはブラウザに記憶されます。再読み込み時は画面上部の「再接続して読み込む」ボタンを押すだけで即座に復元します。</li>
                         <li><strong>ショートカット:</strong> <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px]">Ctrl + S</kbd> で即時保存、<kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px]">Alt + N</kbd> で新規メモ作成ができます。</li>
                         <li><strong>プレビュー機能:</strong> エディタ右上の「プレビュー」に切り替えると、メモ内のURLが自動リンク化されクリックで開けます。</li>
@@ -546,7 +546,6 @@
             }
         }
 
-        // URLを自動リンク化してプレビューに反映
         function updatePreviewContent() {
             const rawText = document.getElementById('memo-content').value;
             const escaped = escapeHtml(rawText);
@@ -584,8 +583,6 @@
             memo.category = document.getElementById('memo-category').value;
             memo.importance = document.getElementById('memo-importance').value;
             memo.content = document.getElementById('memo-content').value;
-            // 更新時にタイムスタンプも最新にする場合は以下を有効化（現在は作成時固定）
-            // memo.date = getNowTimestamp();
 
             updateCounters(memo.content);
             renderMemoList();
@@ -630,7 +627,6 @@
             }
         }
 
-        // 新規JSONファイル作成
         async function createNewJsonFile() {
             if (!('showSaveFilePicker' in window)) {
                 alert('お使いのブラウザは File System Access API に非対応です。');
@@ -652,7 +648,6 @@
             }
         }
 
-        // 既存JSONファイルを開く
         async function openFile() {
             if (!('showOpenFilePicker' in window)) {
                 alert('お使いのブラウザは File System Access API に非対応です。');
@@ -673,7 +668,6 @@
             }
         }
 
-        // 保存ボタン（Ctrl+S）
         async function saveFile() {
             if (!fileHandle) {
                 await createNewJsonFile();
