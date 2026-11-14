@@ -184,4 +184,527 @@
 
                 <!-- 2. 分類プリセット設定 -->
                 <div class="border-t border-slate-100 pt-5">
-                    <h4 class="
+                    <h4 class="font-bold text-slate-800 mb-2">🏷️ 分類タグのプリセット設定</h4>
+                    <p class="text-xs text-slate-500 mb-2.5">よく使う分類を登録しておくと、エディタ上でワンクリック選択できます（ブラウザに保存されます）。</p>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="new-preset-input" onkeydown="if(event.key==='Enter') addPreset()" placeholder="新しい分類名（例: 仕事, 読書, アイデア）" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                        <button onclick="addPreset()" class="px-4 py-1.5 text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white rounded-xl transition">追加</button>
+                    </div>
+                    <div id="preset-list" class="flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- 3. ヘルプ・使い方 -->
+                <div class="border-t border-slate-100 pt-5">
+                    <h4 class="font-bold text-slate-800 mb-2">💡 使い方 & ショートカット</h4>
+                    <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
+                        <li><strong>自動保存:</strong> JSONファイルが接続されている状態では、入力を止めて<strong>1秒後</strong>に自動で上書き保存されます。</li>
+                        <li><strong>リロード時の復元:</strong> 一度紐付けたファイルはブラウザに記憶されます。再読み込み時は画面上部の「再接続して読み込む」ボタンを押すだけで即座に復元します。</li>
+                        <li><strong>ショートカット:</strong> <kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px]">Ctrl + S</kbd> で即時保存、<kbd class="px-1.5 py-0.5 bg-slate-100 border border-slate-300 rounded text-[10px]">Alt + N</kbd> で新規メモ作成ができます。</li>
+                        <li><strong>プレビュー機能:</strong> エディタ右上の「プレビュー」に切り替えると、メモ内のURLが自動リンク化されクリックで開けます。</li>
+                    </ul>
+                </div>
+
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="toggleSettingsModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        const PRESET_STORAGE_KEY = 'pc_local_memo_presets';
+        let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['覚書き', '旅行', 'レシピ'];
+
+        let memos = [
+            { 
+                id: "1", 
+                category: "覚書き", 
+                importance: "中", 
+                date: getNowTimestamp(), 
+                content: "Local Memo（PC完成版）へようこそ！\n\n【使い始めの手順】\n1. 右上の歯車アイコン（⚙️）をクリックします。\n2. 「＋ 新規JSONファイルを作成して紐付け」または「📂 既存JSONファイルを選択」から、PC内のGoogleドライブ同期フォルダ等のJSONファイルを指定します。\n3. 以降は入力から1秒後に自動でJSONファイルへ上書き保存されます。" 
+            }
+        ];
+
+        let currentMemoId = null;
+        let fileHandle = null;
+        let savedHandleCandidate = null;
+        let autoSaveTimer = null;
+        let editorMode = 'edit';
+
+        // IndexedDB（ファイルハンドル記憶用）
+        const DB_NAME = 'PCLocalMemoDB';
+        const STORE_NAME = 'fileHandles';
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = () => request.result.createObjectStore(STORE_NAME);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveHandleToDB(handle) {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).put(handle, 'lastUsedFile');
+            return new Promise(resolve => tx.oncomplete = resolve);
+        }
+
+        async function getHandleFromDB() {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const req = tx.objectStore(STORE_NAME).get('lastUsedFile');
+            return new Promise(resolve => req.onsuccess = () => resolve(req.result));
+        }
+
+        async function clearHandleFromDB() {
+            const db = await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).delete('lastUsedFile');
+            return new Promise(resolve => tx.oncomplete = resolve);
+        }
+
+        // 現在の日時フォーマット (YYYY-MM-DD HH:MM)
+        function getNowTimestamp() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            const hh = String(now.getHours()).padStart(2, '0');
+            const mm = String(now.getMinutes()).padStart(2, '0');
+            return `${y}-${m}-${d} ${hh}:${mm}`;
+        }
+
+        // 初期化
+        window.onload = async () => {
+            checkFileSystemApiSupport();
+            renderPresetList();
+            renderMemoList();
+            if (memos.length > 0) selectMemo(memos[0].id);
+
+            // 前回記憶したファイルハンドルの確認
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const storedHandle = await getHandleFromDB();
+                    if (storedHandle) {
+                        savedHandleCandidate = storedHandle;
+                        const perm = await storedHandle.queryPermission({ mode: 'readwrite' });
+                        if (perm === 'granted') {
+                            await loadFromHandle(storedHandle);
+                        } else {
+                            document.getElementById('reconnect-filename').innerText = storedHandle.name;
+                            document.getElementById('reconnect-banner').classList.remove('hidden');
+                            document.getElementById('file-path-display').innerText = `記憶済み（未接続）: ${storedHandle.name}`;
+                        }
+                    }
+                } catch (e) {
+                    console.error('ファイルハンドル確認エラー:', e);
+                }
+            }
+        };
+
+        // キーボードショートカット (Ctrl+S で保存, Alt+N で新規作成)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                saveFile();
+            } else if (e.altKey && e.key.toLowerCase() === 'n') {
+                e.preventDefault();
+                createNewMemo();
+            }
+        });
+
+        function checkFileSystemApiSupport() {
+            const warningEl = document.getElementById('fs-api-warning');
+            if (!('showOpenFilePicker' in window)) {
+                warningEl.innerText = "⚠️ お使いのブラウザでは File System Access API がサポートされていません。Brave、Chrome、Edge などのPC版ブラウザをご使用ください。";
+                warningEl.classList.remove('hidden');
+            } else if (window.location.protocol === 'file:') {
+                warningEl.innerText = "ℹ️ 現在ローカルファイル（file://）として直接開かれています。ブラウザの制限がかかる場合は、GitHub Pages（https://）経由で開いてください。";
+                warningEl.classList.remove('hidden');
+            }
+        }
+
+        async function reconnectPreviousFile() {
+            if (!savedHandleCandidate) return;
+            try {
+                const perm = await savedHandleCandidate.requestPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    await loadFromHandle(savedHandleCandidate);
+                    document.getElementById('reconnect-banner').classList.add('hidden');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('ファイルの読み込み許可が得られませんでした。「JSONを開く」から再選択してください。');
+            }
+        }
+
+        function dismissReconnectBanner() {
+            document.getElementById('reconnect-banner').classList.add('hidden');
+        }
+
+        async function loadFromHandle(handle) {
+            const file = await handle.getFile();
+            const text = await file.text();
+            const parsed = JSON.parse(text);
+            if (!Array.isArray(parsed)) throw new Error('JSON配列の形式ではありません');
+
+            fileHandle = handle;
+            memos = parsed;
+            document.getElementById('file-path-display').innerText = `接続中ファイル: ${file.name}`;
+            document.getElementById('unlink-btn').classList.remove('hidden');
+            
+            if (memos.length > 0) {
+                selectMemo(memos[0].id);
+            } else {
+                currentMemoId = null;
+                document.getElementById('editor-container').classList.add('hidden');
+                document.getElementById('no-memo-selected').classList.remove('hidden');
+            }
+            renderMemoList();
+            setFileStatus(true);
+        }
+
+        async function clearSavedFileHandle() {
+            await clearHandleFromDB();
+            fileHandle = null;
+            savedHandleCandidate = null;
+            document.getElementById('reconnect-banner').classList.add('hidden');
+            document.getElementById('file-path-display').innerText = 'ファイル未接続（ブラウザのメモリ上で動作中）';
+            document.getElementById('unlink-btn').classList.add('hidden');
+            setFileStatus(false);
+            alert('ファイルの紐付けを解除しました。');
+        }
+
+        // プリセット管理
+        function savePresets() {
+            localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(categoryPresets));
+            renderPresetList();
+            renderCategoryChips();
+            updateCategoryOptions();
+        }
+
+        function addPreset() {
+            const input = document.getElementById('new-preset-input');
+            const val = input.value.trim();
+            if (val && !categoryPresets.includes(val)) {
+                categoryPresets.push(val);
+                input.value = '';
+                savePresets();
+            }
+        }
+
+        function removePreset(tag) {
+            categoryPresets = categoryPresets.filter(p => p !== tag);
+            savePresets();
+        }
+
+        function renderPresetList() {
+            const container = document.getElementById('preset-list');
+            container.innerHTML = categoryPresets.map(tag => `
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    ${escapeHtml(tag)}
+                    <button onclick="removePreset('${escapeHtml(tag)}')" class="text-blue-400 hover:text-blue-800 font-bold ml-0.5">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        function getAllKnownCategories() {
+            const usedCategories = memos.map(m => m.category).filter(Boolean);
+            return [...new Set([...categoryPresets, ...usedCategories])];
+        }
+
+        function renderCategoryChips() {
+            const allCats = getAllKnownCategories();
+            const chipsContainer = document.getElementById('category-chips');
+            const datalist = document.getElementById('category-suggestions');
+
+            datalist.innerHTML = allCats.map(c => `<option value="${escapeHtml(c)}">`).join('');
+
+            chipsContainer.innerHTML = `<span class="text-[11px] font-bold text-slate-400 mr-1">タグ候補:</span>` + 
+                allCats.map(c => {
+                    const isPreset = categoryPresets.includes(c);
+                    return `<button type="button" onclick="applyCategoryChip('${escapeHtml(c)}')" class="text-xs px-2.5 py-0.5 rounded-lg border font-medium transition ${isPreset ? 'bg-blue-50/80 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'}">${escapeHtml(c)}</button>`;
+                }).join('');
+        }
+
+        function applyCategoryChip(cat) {
+            document.getElementById('memo-category').value = cat;
+            updateCurrentMemo();
+        }
+
+        // メモ一覧描画（検索・フィルター・ソート対応）
+        function renderMemoList() {
+            const listEl = document.getElementById('memo-list');
+            const searchKeyword = document.getElementById('search-input').value.toLowerCase();
+            const filterCat = document.getElementById('filter-category').value;
+            const filterImp = document.getElementById('filter-importance').value;
+            const sortOrder = document.getElementById('sort-order').value;
+
+            updateCategoryOptions();
+            renderCategoryChips();
+
+            let filtered = memos.filter(m => {
+                const matchKeyword = (m.content || '').toLowerCase().includes(searchKeyword) || (m.category || '').toLowerCase().includes(searchKeyword);
+                const matchCat = !filterCat || m.category === filterCat;
+                const matchImp = !filterImp || m.importance === filterImp;
+                return matchKeyword && matchCat && matchImp;
+            });
+
+            // ソート処理
+            const impWeight = { '高': 3, '中': 2, '低': 1 };
+            filtered.sort((a, b) => {
+                if (sortOrder === 'oldest') {
+                    return String(a.date).localeCompare(String(b.date));
+                } else if (sortOrder === 'importance') {
+                    const diff = (impWeight[b.importance] || 0) - (impWeight[a.importance] || 0);
+                    return diff !== 0 ? diff : String(b.date).localeCompare(String(a.date));
+                } else {
+                    // newest
+                    return String(b.date).localeCompare(String(a.date));
+                }
+            });
+
+            document.getElementById('memo-count-label').innerText = `${filtered.length} 件のメモ`;
+
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="p-8 text-center text-xs text-slate-400">条件に一致するメモがありません</div>`;
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(m => {
+                const firstLine = (m.content || '').split('\n')[0].trim() || '（無題のメモ）';
+                const secondLine = (m.content || '').split('\n').slice(1).join(' ').trim();
+                return `
+                <div onclick="selectMemo('${m.id}')" class="p-4 cursor-pointer transition hover:bg-slate-50 ${m.id === currentMemoId ? 'bg-blue-50/70 border-l-4 border-blue-600' : ''}">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200/70">${escapeHtml(m.category || '未分類')}</span>
+                        <span class="text-[11px] text-slate-400 font-mono">${escapeHtml(m.date)}</span>
+                    </div>
+                    <p class="text-sm text-slate-800 font-bold truncate">${escapeHtml(firstLine)}</p>
+                    ${secondLine ? `<p class="text-xs text-slate-500 truncate mt-0.5">${escapeHtml(secondLine)}</p>` : ''}
+                    <div class="mt-2 flex items-center">
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${getImportanceBadge(m.importance)}">重要度: ${escapeHtml(m.importance)}</span>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function getImportanceBadge(imp) {
+            if (imp === '高') return 'bg-rose-100 text-rose-700';
+            if (imp === '中') return 'bg-amber-100 text-amber-800';
+            return 'bg-emerald-100 text-emerald-700';
+        }
+
+        function updateCategoryOptions() {
+            const select = document.getElementById('filter-category');
+            const currentVal = select.value;
+            const categories = getAllKnownCategories();
+            
+            select.innerHTML = '<option value="">すべての分類</option>' + 
+                categories.map(c => `<option value="${escapeHtml(c)}" ${c === currentVal ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+        }
+
+        function selectMemo(id) {
+            currentMemoId = id;
+            const memo = memos.find(m => m.id === id);
+            if (!memo) return;
+            
+            document.getElementById('no-memo-selected').classList.add('hidden');
+            document.getElementById('editor-container').classList.remove('hidden');
+
+            document.getElementById('memo-category').value = memo.category || '';
+            document.getElementById('memo-importance').value = memo.importance || '中';
+            document.getElementById('memo-date').value = memo.date || '';
+            document.getElementById('memo-content').value = memo.content || '';
+            
+            updateCounters(memo.content || '');
+            updatePreviewContent();
+            renderMemoList();
+        }
+
+        function setEditorMode(mode) {
+            editorMode = mode;
+            const editBox = document.getElementById('edit-mode-box');
+            const previewBox = document.getElementById('preview-mode-box');
+            const editBtn = document.getElementById('tab-edit-btn');
+            const previewBtn = document.getElementById('tab-preview-btn');
+
+            if (mode === 'edit') {
+                editBox.classList.remove('hidden');
+                previewBox.classList.add('hidden');
+                editBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
+                previewBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
+            } else {
+                updatePreviewContent();
+                editBox.classList.add('hidden');
+                previewBox.classList.remove('hidden');
+                previewBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
+                editBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
+            }
+        }
+
+        // URLを自動リンク化してプレビューに反映
+        function updatePreviewContent() {
+            const rawText = document.getElementById('memo-content').value;
+            const escaped = escapeHtml(rawText);
+            const linked = escaped.replace(/(https?:\/\/[^\s<>"']+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline hover:text-blue-800 font-medium">$1 ↗</a>');
+            document.getElementById('preview-mode-box').innerHTML = linked || '<span class="text-slate-400">（内容がありません）</span>';
+        }
+
+        function updateCounters(text) {
+            document.getElementById('char-count').innerText = `${text.length} 文字`;
+            const lines = text ? text.split('\n').length : 0;
+            document.getElementById('line-count').innerText = `${lines} 行`;
+        }
+
+        function createNewMemo() {
+            const defaultCat = categoryPresets[0] || '覚書き';
+            const newMemo = {
+                id: Date.now().toString(),
+                category: defaultCat,
+                importance: '中',
+                date: getNowTimestamp(),
+                content: ''
+            };
+            memos.unshift(newMemo);
+            setEditorMode('edit');
+            selectMemo(newMemo.id);
+            document.getElementById('memo-content').focus();
+            triggerAutoSave();
+        }
+
+        function updateCurrentMemo() {
+            if (!currentMemoId) return;
+            const memo = memos.find(m => m.id === currentMemoId);
+            if (!memo) return;
+
+            memo.category = document.getElementById('memo-category').value;
+            memo.importance = document.getElementById('memo-importance').value;
+            memo.content = document.getElementById('memo-content').value;
+            // 更新時にタイムスタンプも最新にする場合は以下を有効化（現在は作成時固定）
+            // memo.date = getNowTimestamp();
+
+            updateCounters(memo.content);
+            renderMemoList();
+            triggerAutoSave();
+        }
+
+        function deleteCurrentMemo() {
+            if (!currentMemoId) return;
+            if (!confirm('このメモを削除してもよろしいですか？')) return;
+
+            memos = memos.filter(m => m.id !== currentMemoId);
+            currentMemoId = null;
+            
+            document.getElementById('editor-container').classList.add('hidden');
+            document.getElementById('no-memo-selected').classList.remove('hidden');
+
+            renderMemoList();
+            triggerAutoSave();
+        }
+
+        function triggerAutoSave() {
+            setFileStatus(false);
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                if (fileHandle) {
+                    saveFileSilent();
+                }
+            }, 1000);
+        }
+
+        function setFileStatus(isSaved) {
+            const statusEl = document.getElementById('file-status');
+            if (isSaved && fileHandle) {
+                statusEl.className = "text-xs px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full font-semibold";
+                statusEl.innerText = `✅ 保存済み (${fileHandle.name})`;
+            } else if (!isSaved && fileHandle) {
+                statusEl.className = "text-xs px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold";
+                statusEl.innerText = `⏳ 保存待機中 (${fileHandle.name})`;
+            } else {
+                statusEl.className = "text-xs px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold";
+                statusEl.innerText = "未接続（メモリ動作中）";
+            }
+        }
+
+        // 新規JSONファイル作成
+        async function createNewJsonFile() {
+            if (!('showSaveFilePicker' in window)) {
+                alert('お使いのブラウザは File System Access API に非対応です。');
+                return;
+            }
+            try {
+                fileHandle = await window.showSaveFilePicker({
+                    types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+                    suggestedName: 'memos.json'
+                });
+                await saveHandleToDB(fileHandle);
+                document.getElementById('reconnect-banner').classList.add('hidden');
+                document.getElementById('file-path-display').innerText = `接続中ファイル: ${fileHandle.name}`;
+                document.getElementById('unlink-btn').classList.remove('hidden');
+                await saveFileSilent();
+                alert(`「${fileHandle.name}」を作成し、自動保存先として紐付けました。`);
+            } catch (err) {
+                if (err.name !== 'AbortError') console.error(err);
+            }
+        }
+
+        // 既存JSONファイルを開く
+        async function openFile() {
+            if (!('showOpenFilePicker' in window)) {
+                alert('お使いのブラウザは File System Access API に非対応です。');
+                return;
+            }
+            try {
+                const [handle] = await window.showOpenFilePicker({
+                    types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
+                });
+                await saveHandleToDB(handle);
+                await loadFromHandle(handle);
+                document.getElementById('reconnect-banner').classList.add('hidden');
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error(err);
+                    alert('JSONファイルの読み込みに失敗しました: ' + err.message);
+                }
+            }
+        }
+
+        // 保存ボタン（Ctrl+S）
+        async function saveFile() {
+            if (!fileHandle) {
+                await createNewJsonFile();
+                return;
+            }
+            await saveFileSilent();
+        }
+
+        async function saveFileSilent() {
+            if (!fileHandle) return;
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(memos, null, 2));
+                await writable.close();
+                setFileStatus(true);
+            } catch (err) {
+                console.error("保存エラー:", err);
+                alert("ファイルへの書き込みに失敗しました。権限が切れている場合は再度ファイルを選択してください。");
+            }
+        }
+
+        function toggleSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
