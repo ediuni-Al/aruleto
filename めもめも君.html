@@ -20,7 +20,7 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
             <span class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
-                📝 めもめも君
+                📋 めもめも君
             </span>
             <span id="file-status" class="hidden xs:inline-block text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold">
                 未接続
@@ -259,13 +259,13 @@
     <script>
         const PRESET_STORAGE_KEY = 'memo_kun_presets';
         const MEMOS_STORAGE_KEY = 'memo_kun_local_cache';
-        let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['覚書き', '旅行', 'レシピ'];
+        let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['メモ', '旅行', 'レシピ'];
 
         let memos = JSON.parse(localStorage.getItem(MEMOS_STORAGE_KEY)) || [
             { 
                 id: "1", 
                 title: "めもめも君へようこそ！",
-                category: "覚書き", 
+                category: "メモ", 
                 importance: "中", 
                 date: getNowTimestamp(), 
                 content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。" 
