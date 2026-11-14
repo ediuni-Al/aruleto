@@ -132,7 +132,7 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-500 mb-1">記載日</label>
+                        <label class="block text-xs font-bold text-slate-500 mb-1">更新日時</label>
                         <input type="text" id="memo-date" disabled class="w-full px-3 py-1.5 text-sm border border-slate-100 bg-slate-50 text-slate-500 rounded-xl font-mono">
                     </div>
                 </div>
@@ -304,11 +304,13 @@
             const d = String(now.getDate()).padStart(2, '0');
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
-            return `${y}-${m}-${d} ${hh}:${mm}`;
+            const ss = String(now.getSeconds()).padStart(2, '0');
+            return `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
         }
 
         window.onload = async () => {
             renderPresetList();
+            memos.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
             renderMemoList();
             updateEnvModeUI();
             if (memos.length > 0) selectMemo(memos[0].id);
@@ -376,6 +378,7 @@
 
             fileHandle = handle;
             memos = parsed;
+            memos.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
             saveToLocalStorage();
             document.getElementById('file-path-display').innerText = `接続中ファイル: ${file.name}`;
             document.getElementById('unlink-btn').classList.remove('hidden');
@@ -615,13 +618,23 @@
 
         function updateCurrentMemo() {
             if (!currentMemoId) return;
-            const memo = memos.find(m => m.id === currentMemoId);
-            if (!memo) return;
+            const index = memos.findIndex(m => m.id === currentMemoId);
+            if (index === -1) return;
+            const memo = memos[index];
 
             memo.title = document.getElementById('memo-title').value;
             memo.category = document.getElementById('memo-category').value;
             memo.importance = document.getElementById('memo-importance').value;
             memo.content = document.getElementById('memo-content').value;
+            memo.date = getNowTimestamp();
+
+            document.getElementById('memo-date').value = memo.date;
+
+            // 配列自体も最新が先頭になるよう移動
+            if (index > 0) {
+                memos.splice(index, 1);
+                memos.unshift(memo);
+            }
 
             updateCounters(memo.content);
             renderMemoList();
@@ -710,6 +723,7 @@
                 if (!Array.isArray(parsed)) throw new Error('形式が不正です');
 
                 memos = parsed;
+                memos.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
                 fallbackFileName = file.name;
                 saveToLocalStorage();
                 document.getElementById('file-path-display').innerText = `読込ファイル: ${file.name}`;
