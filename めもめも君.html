@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Local Memo - PC Edition</title>
+    <title>めもめも君 - PC Edition</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
@@ -13,7 +13,7 @@
     <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between shadow-sm shrink-0 z-20">
         <div class="flex items-center space-x-3">
             <span class="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
-                📝 Local Memo
+                📝 めもめも君
             </span>
             <span id="file-status" class="text-xs px-3 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold">
                 未接続（メモリ動作中）
@@ -56,7 +56,7 @@
                 </button>
                 
                 <div class="relative">
-                    <input type="text" id="search-input" oninput="renderMemoList()" placeholder="キーワード検索..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="search-input" oninput="renderMemoList()" placeholder="キーワード・タイトル検索..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs">🔍</span>
                 </div>
 
@@ -90,8 +90,14 @@
         <main class="flex-1 bg-slate-100/70 flex flex-col p-6 overflow-y-auto">
             <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col h-full hidden">
                 
+                <!-- タイトル入力欄 -->
+                <div class="pb-4 border-b border-slate-100">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">タイトル</label>
+                    <input type="text" id="memo-title" oninput="updateCurrentMemo()" placeholder="メモのタイトルを入力..." class="w-full px-3.5 py-2 text-base font-bold text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                </div>
+
                 <!-- 上部メタデータ設定 -->
-                <div class="grid grid-cols-3 gap-4 pb-4 border-b border-slate-100">
+                <div class="grid grid-cols-3 gap-4 py-4 border-b border-slate-100">
                     <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">分類タグ</label>
                         <input type="text" id="memo-category" list="category-suggestions" oninput="updateCurrentMemo()" placeholder="選択または自由入力..." class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
@@ -124,8 +130,8 @@
                 </div>
 
                 <!-- テキストエリア（編集モード） -->
-                <div id="edit-mode-box" class="flex-1 flex flex-col min-h-[300px]">
-                    <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモを入力してください...&#10;（入力を止めると1秒後に自動保存されます）" class="flex-1 w-full p-4 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
+                <div id="edit-mode-box" class="flex-1 flex flex-col min-h-[250px]">
+                    <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください...&#10;（入力を止めると1秒後に自動保存されます）" class="flex-1 w-full p-4 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
                 </div>
 
                 <!-- プレビュー表示（閲覧モード） -->
@@ -213,16 +219,17 @@
 
     <!-- JavaScript ロジック -->
     <script>
-        const PRESET_STORAGE_KEY = 'pc_local_memo_presets';
+        const PRESET_STORAGE_KEY = 'memo_kun_presets';
         let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['覚書き', '旅行', 'レシピ'];
 
         let memos = [
             { 
                 id: "1", 
+                title: "めもめも君へようこそ！",
                 category: "覚書き", 
                 importance: "中", 
                 date: getNowTimestamp(), 
-                content: "Local Memo（PC完成版）へようこそ！\n\n【使い始めの手順】\n1. 右上の歯車アイコン（⚙️）をクリックします。\n2. 「＋ 新規JSONファイルを作成して紐付け」または「📂 既存JSONファイルを選択」から、PC内のGoogleドライブ同期フォルダ等のJSONファイルを指定します。\n3. 以降は入力から1秒後に自動でJSONファイルへ上書き保存されます。" 
+                content: "めもめも君（PC完成版）へようこそ！\n\n【使い始めの手順】\n1. 右上の歯車アイコン（⚙️）をクリックします。\n2. 「＋ 新規JSONファイルを作成して紐付け」または「📂 既存JSONファイルを選択」から、PC内のGoogleドライブ同期フォルダ等のJSONファイルを指定します。\n3. 以降は入力から1秒後に自動でJSONファイルへ上書き保存されます。" 
             }
         ];
 
@@ -233,7 +240,7 @@
         let editorMode = 'edit';
 
         // IndexedDB（ファイルハンドル記憶用）
-        const DB_NAME = 'PCLocalMemoDB';
+        const DB_NAME = 'MemoKunDB';
         const STORE_NAME = 'fileHandles';
 
         function openDB() {
@@ -266,7 +273,6 @@
             return new Promise(resolve => tx.oncomplete = resolve);
         }
 
-        // 現在の日時フォーマット (YYYY-MM-DD HH:MM)
         function getNowTimestamp() {
             const now = new Date();
             const y = now.getFullYear();
@@ -277,14 +283,12 @@
             return `${y}-${m}-${d} ${hh}:${mm}`;
         }
 
-        // 初期化
         window.onload = async () => {
             checkFileSystemApiSupport();
             renderPresetList();
             renderMemoList();
             if (memos.length > 0) selectMemo(memos[0].id);
 
-            // 前回記憶したファイルハンドルの確認
             if ('showOpenFilePicker' in window) {
                 try {
                     const storedHandle = await getHandleFromDB();
@@ -305,7 +309,6 @@
             }
         };
 
-        // キーボードショートカット (Ctrl+S で保存, Alt+N で新規作成)
         document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
@@ -378,7 +381,6 @@
             alert('ファイルの紐付けを解除しました。');
         }
 
-        // プリセット管理
         function savePresets() {
             localStorage.setItem(PRESET_STORAGE_KEY, JSON.stringify(categoryPresets));
             renderPresetList();
@@ -435,7 +437,7 @@
             updateCurrentMemo();
         }
 
-        // メモ一覧描画（検索・フィルター・ソート対応）
+        // メモ一覧描画（タイトルを表示）
         function renderMemoList() {
             const listEl = document.getElementById('memo-list');
             const searchKeyword = document.getElementById('search-input').value.toLowerCase();
@@ -447,13 +449,12 @@
             renderCategoryChips();
 
             let filtered = memos.filter(m => {
-                const matchKeyword = (m.content || '').toLowerCase().includes(searchKeyword) || (m.category || '').toLowerCase().includes(searchKeyword);
+                const matchKeyword = (m.title || '').toLowerCase().includes(searchKeyword) || (m.content || '').toLowerCase().includes(searchKeyword) || (m.category || '').toLowerCase().includes(searchKeyword);
                 const matchCat = !filterCat || m.category === filterCat;
                 const matchImp = !filterImp || m.importance === filterImp;
                 return matchKeyword && matchCat && matchImp;
             });
 
-            // ソート処理
             const impWeight = { '高': 3, '中': 2, '低': 1 };
             filtered.sort((a, b) => {
                 if (sortOrder === 'oldest') {
@@ -462,7 +463,6 @@
                     const diff = (impWeight[b.importance] || 0) - (impWeight[a.importance] || 0);
                     return diff !== 0 ? diff : String(b.date).localeCompare(String(a.date));
                 } else {
-                    // newest
                     return String(b.date).localeCompare(String(a.date));
                 }
             });
@@ -475,16 +475,14 @@
             }
 
             listEl.innerHTML = filtered.map(m => {
-                const firstLine = (m.content || '').split('\n')[0].trim() || '（無題のメモ）';
-                const secondLine = (m.content || '').split('\n').slice(1).join(' ').trim();
+                const memoTitle = (m.title || '').trim() || '（無題のメモ）';
                 return `
                 <div onclick="selectMemo('${m.id}')" class="p-4 cursor-pointer transition hover:bg-slate-50 ${m.id === currentMemoId ? 'bg-blue-50/70 border-l-4 border-blue-600' : ''}">
                     <div class="flex items-center justify-between mb-1.5">
                         <span class="text-[11px] font-bold px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md border border-slate-200/70">${escapeHtml(m.category || '未分類')}</span>
                         <span class="text-[11px] text-slate-400 font-mono">${escapeHtml(m.date)}</span>
                     </div>
-                    <p class="text-sm text-slate-800 font-bold truncate">${escapeHtml(firstLine)}</p>
-                    ${secondLine ? `<p class="text-xs text-slate-500 truncate mt-0.5">${escapeHtml(secondLine)}</p>` : ''}
+                    <p class="text-sm text-slate-800 font-bold truncate">${escapeHtml(memoTitle)}</p>
                     <div class="mt-2 flex items-center">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${getImportanceBadge(m.importance)}">重要度: ${escapeHtml(m.importance)}</span>
                     </div>
@@ -515,6 +513,7 @@
             document.getElementById('no-memo-selected').classList.add('hidden');
             document.getElementById('editor-container').classList.remove('hidden');
 
+            document.getElementById('memo-title').value = memo.title || '';
             document.getElementById('memo-category').value = memo.category || '';
             document.getElementById('memo-importance').value = memo.importance || '中';
             document.getElementById('memo-date').value = memo.date || '';
@@ -563,6 +562,7 @@
             const defaultCat = categoryPresets[0] || '覚書き';
             const newMemo = {
                 id: Date.now().toString(),
+                title: '',
                 category: defaultCat,
                 importance: '中',
                 date: getNowTimestamp(),
@@ -571,7 +571,7 @@
             memos.unshift(newMemo);
             setEditorMode('edit');
             selectMemo(newMemo.id);
-            document.getElementById('memo-content').focus();
+            document.getElementById('memo-title').focus();
             triggerAutoSave();
         }
 
@@ -580,6 +580,7 @@
             const memo = memos.find(m => m.id === currentMemoId);
             if (!memo) return;
 
+            memo.title = document.getElementById('memo-title').value;
             memo.category = document.getElementById('memo-category').value;
             memo.importance = document.getElementById('memo-importance').value;
             memo.content = document.getElementById('memo-content').value;
