@@ -117,10 +117,8 @@
             </div>
             <div class="p-6 overflow-y-auto space-y-6 text-sm text-slate-600">
                 
-                <!-- GAS設定 -->
                 <div>
                     <h4 class="font-semibold text-slate-800 mb-2">☁️ Google Apps Script (GAS) 接続設定</h4>
-                    <p class="text-xs text-slate-500 mb-3">Googleドライブと自動同期するための設定を入力してください（情報はブラウザ内にのみ保存されます）。</p>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-500 mb-1">GAS ウェブアプリ URL</label>
@@ -134,7 +132,6 @@
                     </div>
                 </div>
 
-                <!-- 分類プリセット設定 -->
                 <div class="border-t border-slate-100 pt-4">
                     <h4 class="font-semibold text-slate-800 mb-2">🏷️ 分類タグのプリセット設定</h4>
                     <div class="flex gap-2 mb-3">
@@ -144,13 +141,10 @@
                     <div id="preset-list" class="flex flex-wrap gap-1.5"></div>
                 </div>
 
-                <!-- ヘルプ -->
                 <div class="border-t border-slate-100 pt-4">
                     <h4 class="font-semibold text-slate-800 mb-2">💡 使い方</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600">
-                        <li><strong>完全自動同期:</strong> 初回にGASのURLとパスワードを設定すれば、PCでもスマホ（Brave等）でも起動時にクラウド（Googleドライブ上の `memos.json`）から自動で最新データを取得します。</li>
-                        <li><strong>自動保存:</strong> メモを編集すると1.5秒後に自動でGoogleドライブへクラウド保存されます。</li>
-                        <li><strong>GitHubの安全性:</strong> 設定したURLやパスワードはあなたの端末のブラウザ内にのみ保存されるため、GitHub上のソースコードには一切露出しません。</li>
+                        <li><strong>モバイル対応:</strong> 「AutoNav」と同じ通信方式（URLSearchParams）を採用しているため、Android版Braveなどの環境でもブロックされずにスムーズに自動同期します。</li>
                     </ul>
                 </div>
 
@@ -175,19 +169,16 @@
 
         let currentMemoId = null;
         let autoSaveTimer = null;
-        let isSyncing = false;
 
         window.onload = async () => {
             renderPresetList();
             renderMemoList();
             
-            // 設定値の復元
             document.getElementById('gas-url-input').value = localStorage.getItem(GAS_URL_KEY) || '';
             document.getElementById('gas-pass-input').value = localStorage.getItem(GAS_PASS_KEY) || '';
 
             if (memos.length > 0) selectMemo(memos[0].id);
 
-            // 起動時にクラウド同期を試みる
             const url = localStorage.getItem(GAS_URL_KEY);
             if (url) {
                 await syncWithCloud(true);
@@ -204,6 +195,7 @@
             syncWithCloud();
         }
 
+        // AutoNavと同じ x-www-form-urlencoded 形式の通信
         async function syncWithCloud(isStartup = false) {
             const url = localStorage.getItem(GAS_URL_KEY);
             const pass = localStorage.getItem(GAS_PASS_KEY);
@@ -245,9 +237,15 @@
 
             setSyncStatus('syncing');
             try {
+                // AutoNavと同じ URLSearchParams を使ったフォーム送信形式 (POST)
+                const params = new URLSearchParams();
+                params.append('password', pass);
+                params.append('memos', JSON.stringify(memos));
+
                 const res = await fetch(url, {
                     method: 'POST',
-                    body: JSON.stringify({ password: pass, memos: memos })
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: params
                 });
                 const result = await res.json();
                 if (result.status === 'success') {
