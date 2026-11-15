@@ -6,7 +6,6 @@
     <title>めもめも君</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
@@ -163,7 +162,7 @@
                     </div>
                 </div>
 
-                <!-- テキストエア（編集モード：PCのみ） -->
+                <!-- テキストエリア（編集モード：PCのみ） -->
                 <div id="edit-mode-box" class="hidden flex-col min-h-[250px]">
                     <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-3.5 sm:p-4 text-base sm:text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
                 </div>
@@ -186,7 +185,7 @@
             <!-- 未選択時のプレースホルダー -->
             <div id="no-memo-selected" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
                 <div class="text-4xl mb-3">📝</div>
-                <p class="text-base font-bold text-slate-500">メモを選択するか、新規作成てください</p>
+                <p class="text-base font-bold text-slate-500">メモを選択するか、新規作成してください</p>
                 <p class="text-xs mt-1">右上の「⚙️ 設定」からJSONファイルの読み込みができます</p>
                 <button onclick="toggleMobileSidebar()" class="sm:hidden mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow">
                     メモ一覧を開く
@@ -199,7 +198,7 @@
     <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[88vh]">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 class="font-bold text-slate-800 text-base">⚙️ 設定 ＆ ファイル理</h3>
+                <h3 class="font-bold text-slate-800 text-base">⚙️ 設定 ＆ ファイル管理</h3>
                 <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
             </div>
             <div class="p-6 overflow-y-auto space-y-6 text-sm text-slate-600">
@@ -240,7 +239,7 @@
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
                         <li><strong>PC (Brave/Chrome等):</strong> 一度「新規作成」または「JSONを開く」を行うと、以降は入力のたびに自動でファイルに上書き保存できます。</li>
-                        <li><strong>携帯・非対応ブラウザ:</strong> 「JSONを開く」から端末内のJSONを選択して読み込みます。編集はPC版で行ってください。テキストを選択するとQR表示ボタンが現れます。</li>
+                        <li><strong>携帯・非対応ブラウザ:</strong> 「JSONを開く」から端末内のJSONを選択して読み込みます。編集はPC版で行ってください。</li>
                     </ul>
                 </div>
 
@@ -250,28 +249,6 @@
             </div>
         </div>
     </div>
-
-    <!-- QRコード表示モーダル -->
-    <div id="qr-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
-            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 class="font-bold text-slate-800 text-base">📱 選択テキストのQRコード</h3>
-                <button onclick="toggleQRModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
-            </div>
-            <div class="p-6 flex flex-col items-center">
-                <div id="qrcode-container" class="bg-white p-2 rounded-xl"></div>
-                <p id="qr-text-preview" class="mt-4 text-xs text-slate-500 text-center break-all max-w-full line-clamp-3"></p>
-            </div>
-            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
-                <button onclick="toggleQRModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">閉じる</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- フローティングQRボタン（モバイル専用） -->
-    <button id="floating-qr-btn" onclick="showQRForSelection()" class="fixed bottom-6 right-4 z-40 hidden sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-full shadow-lg font-bold text-sm transition transform hover:scale-105 active:scale-95 flex items-center gap-1">
-        <span></span> QR表示
-    </button>
 
     <!-- JavaScript ロジック -->
     <script>
@@ -286,7 +263,7 @@
                 category: "メモ", 
                 importance: "中", 
                 date: getNowTimestamp(), 
-                content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。\n\n【モバイル版について】\n・読み取り専用です（保存・編集はPC版で）\n・テキストを選択すると「QR表示」ボタンが現れます\n・選択した文字列をQRコードに変換して他の端末へ送れます" 
+                content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。\n\n【モバイル版について】\n・読み取り専用です（保存・編集はPC版で）" 
             }
         ];
 
@@ -614,7 +591,6 @@
             const tabContainer = document.getElementById('editor-tabs');
 
             if (isMobile) {
-                // モバイル: 編集エリア非表示、プレビューのみ表示、タブ非表示
                 if (tabContainer) tabContainer.classList.add('hidden');
                 editBox.classList.add('hidden');
                 editBox.classList.remove('flex-1', 'flex');
@@ -627,7 +603,6 @@
                     toggleMobileSidebar();
                 }
             } else {
-                // PC: タブ表示、editorMode に応じて切り替え
                 if (tabContainer) tabContainer.classList.remove('hidden');
                 if (preferEditMode) {
                     setEditorMode('edit');
@@ -874,59 +849,6 @@
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
-
-        // QRコード機能
-        function toggleQRModal() {
-            const modal = document.getElementById('qr-modal');
-            modal.classList.toggle('hidden');
-        }
-
-        function showQRForSelection() {
-            const selection = window.getSelection().toString().trim();
-            if (!selection) return;
-
-            const container = document.getElementById('qrcode-container');
-            container.innerHTML = '';
-
-            new QRCode(container, {
-                text: selection,
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.M
-            });
-
-            const previewEl = document.getElementById('qr-text-preview');
-            previewEl.innerText = selection.length > 200 ? selection.substring(0, 200) + '...' : selection;
-            toggleQRModal();
-            document.getElementById('floating-qr-btn').classList.add('hidden');
-        }
-
-        // テキスト選択検知（モバイル専用）
-        document.addEventListener('selectionchange', () => {
-            clearTimeout(window.qrSelectionTimer);
-            window.qrSelectionTimer = setTimeout(() => {
-                const text = window.getSelection().toString().trim();
-                const btn = document.getElementById('floating-qr-btn');
-                if (text && window.innerWidth < 640) {
-                    btn.classList.remove('hidden');
-                } else {
-                    btn.classList.add('hidden');
-                }
-            }, 300);
-        });
-
-        // タップで選択解除時にもQRボタンを隠す
-        document.addEventListener('click', (e) => {
-            const btn = document.getElementById('floating-qr-btn');
-            if (e.target !== btn && !btn.contains(e.target)) {
-                setTimeout(() => {
-                    const text = window.getSelection().toString().trim();
-                    if (!text) btn.classList.add('hidden');
-                }, 100);
-            }
-        });
 
         // リサイズ対応：モバイル/PC切り替えの表示制御
         window.addEventListener('resize', () => {
