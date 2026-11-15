@@ -6,6 +6,7 @@
     <title>めもめも君</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
@@ -20,14 +21,15 @@
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
             <span class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
-                📋 めもめも君
+                <span class="sm:hidden">📋 めもめも君(読み取り専用)</span>
+                <span class="hidden sm:inline">📋 めもめも君</span>
             </span>
             <span id="file-status" class="hidden xs:inline-block text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold">
                 未接続
             </span>
         </div>
         <div class="flex items-center space-x-2">
-            <button onclick="saveFile()" class="px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center gap-1">
+            <button onclick="saveFile()" class="hidden sm:flex px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm items-center gap-1">
                 💾 保存
             </button>
             <button onclick="toggleSettingsModal()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition border border-transparent hover:border-slate-200" title="設定 & ヘルプ">
@@ -51,19 +53,19 @@
 
     <!-- メインコンテナ -->
     <div class="flex-1 flex relative overflow-hidden">
-        
+
         <!-- 左側：サイドバー（一覧・検索・フィルター） -->
         <aside id="sidebar" class="absolute sm:relative inset-y-0 left-0 w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 z-10 transform -translate-x-full sm:translate-x-0 transition-transform duration-200 shadow-xl sm:shadow-none">
             <div class="sm:hidden px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50">
                 <span class="font-bold text-sm text-slate-700">メモ一覧</span>
                 <button onclick="toggleMobileSidebar()" class="text-slate-400 hover:text-slate-600 font-bold text-lg px-2">&times;</button>
             </div>
-            
+
             <div class="p-4 border-b border-slate-100 space-y-3 bg-slate-50/50">
-                <button onclick="createNewMemo()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold rounded-xl transition shadow-sm text-sm flex items-center justify-center gap-1">
+                <button onclick="createNewMemo()" class="hidden sm:flex w-full py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold rounded-xl transition shadow-sm text-sm items-center justify-center gap-1">
                     <span>＋</span> 新規メモ作成
                 </button>
-                
+
                 <div class="relative">
                     <input type="text" id="search-input" oninput="renderMemoList()" placeholder="タイトル・キーワード検索..." class="w-full pl-8 pr-3 py-1.5 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <span class="absolute left-2.5 top-1.5 text-slate-400 text-xs">🔍</span>
@@ -101,18 +103,12 @@
         <!-- 右側：エディタエリア -->
         <main class="flex-1 bg-slate-100/70 flex flex-col p-2 sm:p-6 overflow-y-auto">
             <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 sm:p-6 flex flex-col h-full hidden">
-                
-                <!-- スマホ用：一覧に戻るボタン ＆ 詳細編集トグル -->
+
+                <!-- スマホ用：一覧に戻るボタン -->
                 <div class="sm:hidden pb-2.5 mb-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <button onclick="toggleMobileSidebar()" class="text-sm font-bold text-blue-600 flex items-center space-x-1 py-1">
                         <span>← 一覧へ</span>
                     </button>
-                    <div class="flex items-center space-x-2">
-                        <button type="button" id="mobile-meta-toggle-btn" onclick="toggleMobileMetaFields()" class="text-xs font-bold text-slate-600 px-2.5 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                            ✏️ タイトル・タグ編集
-                        </button>
-                        <button onclick="deleteCurrentMemo()" class="text-xs font-bold text-rose-600 px-2 py-1 bg-rose-50 rounded-lg">削除</button>
-                    </div>
                 </div>
 
                 <!-- スマホ閲覧時用：コンパクトなタイトル・メタ情報ヘッダー -->
@@ -125,7 +121,7 @@
                     <h2 id="mobile-view-title" class="text-lg font-bold text-slate-900 leading-snug break-words select-text"></h2>
                 </div>
 
-                <!-- タイトル・メタデータ編集ブロック（PCでは常時表示、スマホではデフォルト非表示） -->
+                <!-- タイトル・メタデータ編集ブロック（PCのみ表示） -->
                 <div id="meta-edit-section" class="hidden sm:block shrink-0">
                     <!-- タイトル入力欄 -->
                     <div class="pb-3 sm:pb-4 border-b border-slate-100">
@@ -158,8 +154,8 @@
                     <div class="pt-3 pb-2 flex flex-wrap items-center gap-1.5" id="category-chips"></div>
                 </div>
 
-                <!-- 編集 / プレビュー 切り替えタブ -->
-                <div class="flex items-center justify-between pt-2 pb-1.5">
+                <!-- 編集 / プレビュー 切り替えタブ（PCのみ） -->
+                <div id="editor-tabs" class="hidden sm:flex items-center justify-between pt-2 pb-1.5 shrink-0">
                     <label class="text-xs font-bold text-slate-500">内容</label>
                     <div class="flex bg-slate-100 p-0.5 rounded-lg text-xs font-bold">
                         <button type="button" id="tab-edit-btn" onclick="setEditorMode('edit')" class="px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition">✏️ 編集</button>
@@ -167,16 +163,16 @@
                     </div>
                 </div>
 
-                <!-- テキストエリア（編集モード） -->
-                <div id="edit-mode-box" class="flex-1 flex flex-col min-h-[250px]">
+                <!-- テキストエア（編集モード：PCのみ） -->
+                <div id="edit-mode-box" class="hidden flex-col min-h-[250px]">
                     <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-3.5 sm:p-4 text-base sm:text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
                 </div>
 
-                <!-- プレビュー表示（閲覧モード） -->
-                <div id="preview-mode-box" class="flex-1 hidden overflow-y-auto p-3.5 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
+                <!-- プレビュー表示（閲覧モード：モバイルでは常時表示） -->
+                <div id="preview-mode-box" class="hidden overflow-y-auto p-3.5 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
 
-                <!-- フッター操作 -->
-                <div class="pt-4 hidden sm:flex justify-between items-center border-t border-slate-100 mt-4">
+                <!-- フッター操作（PCのみ） -->
+                <div class="pt-4 hidden sm:flex justify-between items-center border-t border-slate-100 mt-4 shrink-0">
                     <div class="flex items-center space-x-4 text-xs text-slate-400">
                         <span id="char-count">0 文字</span>
                         <span id="line-count">0 行</span>
@@ -190,7 +186,7 @@
             <!-- 未選択時のプレースホルダー -->
             <div id="no-memo-selected" class="flex-1 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
                 <div class="text-4xl mb-3">📝</div>
-                <p class="text-base font-bold text-slate-500">メモを選択するか、新規作成してください</p>
+                <p class="text-base font-bold text-slate-500">メモを選択するか、新規作成てください</p>
                 <p class="text-xs mt-1">右上の「⚙️ 設定」からJSONファイルの読み込みができます</p>
                 <button onclick="toggleMobileSidebar()" class="sm:hidden mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow">
                     メモ一覧を開く
@@ -203,15 +199,15 @@
     <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col max-h-[88vh]">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                <h3 class="font-bold text-slate-800 text-base">⚙️ 設定 ＆ ファイル管理</h3>
+                <h3 class="font-bold text-slate-800 text-base">⚙️ 設定 ＆ ファイル理</h3>
                 <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
             </div>
             <div class="p-6 overflow-y-auto space-y-6 text-sm text-slate-600">
-                
+
                 <!-- 1. データ保存・ファイル設定 -->
                 <div>
                     <h4 class="font-bold text-slate-800 mb-2">📁 JSONデータ管理</h4>
-                    <p class="text-xs text-slate-500 mb-2.5" id="env-mode-desc">PC環境では自動保存、携帯環境では手動での読込・保存に対応しています。</p>
+                    <p class="text-xs text-slate-500 mb-2.5" id="env-mode-desc">PC環境では自動保存・編集、携帯環境では読み取り専用（手動読込のみ）に対応しています。</p>
                     <div id="file-path-display" class="p-3 bg-slate-50 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 break-all mb-3">
                         ファイル未接続
                     </div>
@@ -219,7 +215,7 @@
                         <button onclick="openFile()" class="px-3.5 py-2 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm">
                             📂 JSONを開く / 選択
                         </button>
-                        <button onclick="createNewJsonFile()" id="pc-create-btn" class="px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-200">
+                        <button onclick="createNewJsonFile()" id="pc-create-btn" class="hidden sm:inline-block px-3.5 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition border border-slate-200">
                             ＋ 新規JSON作成
                         </button>
                         <button onclick="clearSavedFileHandle()" id="unlink-btn" class="px-3.5 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition hidden">
@@ -229,8 +225,8 @@
                     <p id="fs-api-warning" class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2.5 rounded-xl mt-2.5 hidden"></p>
                 </div>
 
-                <!-- 2. 分類プリセット設定 -->
-                <div class="border-t border-slate-100 pt-5">
+                <!-- 2. 分類プリセット設定（PCのみ） -->
+                <div class="hidden sm:block border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">🏷️ 分類タグのプリセット設定</h4>
                     <div class="flex gap-2 mb-3">
                         <input type="text" id="new-preset-input" onkeydown="if(event.key==='Enter') addPreset()" placeholder="新しい分類名（例: 仕事, 読書）" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
@@ -243,8 +239,8 @@
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
-                        <li><strong>PC (Brave/Chrome等):</strong> 一度「新規作成」または「JSONを開く」を行うと、以降は入力のたびに自動でファイルに上書き保存されます。</li>
-                        <li><strong>携帯・非対応ブラウザ:</strong> 「JSONを開く」から端末内のJSONを選択して読み込みます。編集後は「保存」ボタンを押すと、最新のJSONファイルが端末にダウンロード保存されます。</li>
+                        <li><strong>PC (Brave/Chrome等):</strong> 一度「新規作成」または「JSONを開く」を行うと、以降は入力のたびに自動でファイルに上書き保存できます。</li>
+                        <li><strong>携帯・非対応ブラウザ:</strong> 「JSONを開く」から端末内のJSONを選択して読み込みます。編集はPC版で行ってください。テキストを選択するとQR表示ボタンが現れます。</li>
                     </ul>
                 </div>
 
@@ -254,6 +250,28 @@
             </div>
         </div>
     </div>
+
+    <!-- QRコード表示モーダル -->
+    <div id="qr-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col">
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 class="font-bold text-slate-800 text-base">📱 選択テキストのQRコード</h3>
+                <button onclick="toggleQRModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 flex flex-col items-center">
+                <div id="qrcode-container" class="bg-white p-2 rounded-xl"></div>
+                <p id="qr-text-preview" class="mt-4 text-xs text-slate-500 text-center break-all max-w-full line-clamp-3"></p>
+            </div>
+            <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex justify-end">
+                <button onclick="toggleQRModal()" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- フローティングQRボタン（モバイル専用） -->
+    <button id="floating-qr-btn" onclick="showQRForSelection()" class="fixed bottom-6 right-4 z-40 hidden sm:hidden bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-full shadow-lg font-bold text-sm transition transform hover:scale-105 active:scale-95 flex items-center gap-1">
+        <span></span> QR表示
+    </button>
 
     <!-- JavaScript ロジック -->
     <script>
@@ -268,7 +286,7 @@
                 category: "メモ", 
                 importance: "中", 
                 date: getNowTimestamp(), 
-                content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。" 
+                content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。\n\n【モバイル版について】\n・読み取り専用です（保存・編集はPC版で）\n・テキストを選択すると「QR表示」ボタンが現れます\n・選択した文字列をQRコードに変換して他の端末へ送れます" 
             }
         ];
 
@@ -356,7 +374,7 @@
         function updateEnvModeUI() {
             if (!isApiSupported) {
                 document.getElementById('pc-create-btn').classList.add('hidden');
-                document.getElementById('env-mode-desc').innerText = "モバイル・非対応ブラウザ環境です。「JSONを開く」でファイルを選択し、保存時はダウンロード保存になります。";
+                document.getElementById('env-mode-desc').innerText = "モバイル・非対応ブラウザ環境です。「JSONを開く」でファイルを選択し、読み取り専用で閲覧します。編集はPC版で行ってください。";
             }
         }
 
@@ -400,7 +418,7 @@
             saveToLocalStorage();
             document.getElementById('file-path-display').innerText = `接続中ファイル: ${file.name}`;
             document.getElementById('unlink-btn').classList.remove('hidden');
-            
+
             if (memos.length > 0) selectMemo(memos[0].id);
             renderMemoList();
             setFileStatus(true, file.name);
@@ -484,7 +502,7 @@
             updateCurrentMemo();
         }
 
-        // メモ一覧描画（タイトル名を表示 ＆ 一覧から削除できるボタンを配置）
+        // メモ一覧描画
         function renderMemoList() {
             const listEl = document.getElementById('memo-list');
             const searchKeyword = document.getElementById('search-input').value.toLowerCase();
@@ -535,7 +553,7 @@
                             <span class="text-[9px] font-bold px-1.5 py-0.1 rounded-full ${getImportanceBadge(m.importance)}">重要度: ${escapeHtml(m.importance)}</span>
                         </div>
                     </div>
-                    <button onclick="deleteMemoById(event, '${m.id}')" class="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0" title="削除">
+                    <button onclick="deleteMemoById(event, '${m.id}')" class="hidden sm:block p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0" title="削除">
                         🗑️
                     </button>
                 </div>
@@ -552,7 +570,7 @@
             const select = document.getElementById('filter-category');
             const currentVal = select.value;
             const categories = getAllKnownCategories();
-            
+
             select.innerHTML = '<option value="">すべての分類</option>' + 
                 categories.map(c => `<option value="${escapeHtml(c)}" ${c === currentVal ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
         }
@@ -571,24 +589,11 @@
             dateEl.innerText = memo.date || '';
         }
 
-        function toggleMobileMetaFields(forceOpen = null) {
-            const section = document.getElementById('meta-edit-section');
-            const btn = document.getElementById('mobile-meta-toggle-btn');
-            const shouldOpen = forceOpen !== null ? forceOpen : section.classList.contains('hidden');
-            if (shouldOpen) {
-                section.classList.remove('hidden');
-                btn.innerText = '▲ 閉じる';
-            } else {
-                section.classList.add('hidden');
-                btn.innerText = '✏️ タイトル・タグ編集';
-            }
-        }
-
         function selectMemo(id, preferEditMode = false) {
             currentMemoId = id;
             const memo = memos.find(m => m.id === id);
             if (!memo) return;
-            
+
             document.getElementById('no-memo-selected').classList.add('hidden');
             document.getElementById('editor-container').classList.remove('hidden');
 
@@ -597,23 +602,37 @@
             document.getElementById('memo-importance').value = memo.importance || '中';
             document.getElementById('memo-date').value = memo.date || '';
             document.getElementById('memo-content').value = memo.content || '';
-            
+
             syncMobileViewHeader(memo);
             updateCounters(memo.content || '');
             updatePreviewContent();
             renderMemoList();
 
-            if (window.innerWidth < 640) {
-                if (!preferEditMode) {
-                    setEditorMode('preview');
-                    toggleMobileMetaFields(false);
-                } else {
-                    setEditorMode('edit');
-                    toggleMobileMetaFields(true);
-                }
+            const isMobile = window.innerWidth < 640;
+            const editBox = document.getElementById('edit-mode-box');
+            const previewBox = document.getElementById('preview-mode-box');
+            const tabContainer = document.getElementById('editor-tabs');
+
+            if (isMobile) {
+                // モバイル: 編集エリア非表示、プレビューのみ表示、タブ非表示
+                if (tabContainer) tabContainer.classList.add('hidden');
+                editBox.classList.add('hidden');
+                editBox.classList.remove('flex-1', 'flex');
+                previewBox.classList.remove('hidden');
+                previewBox.classList.add('flex-1');
+                updatePreviewContent();
+
                 const sidebar = document.getElementById('sidebar');
                 if (!sidebar.classList.contains('-translate-x-full')) {
                     toggleMobileSidebar();
+                }
+            } else {
+                // PC: タブ表示、editorMode に応じて切り替え
+                if (tabContainer) tabContainer.classList.remove('hidden');
+                if (preferEditMode) {
+                    setEditorMode('edit');
+                } else {
+                    setEditorMode('preview');
                 }
             }
         }
@@ -627,13 +646,17 @@
 
             if (mode === 'edit') {
                 editBox.classList.remove('hidden');
+                editBox.classList.add('flex-1', 'flex');
                 previewBox.classList.add('hidden');
+                previewBox.classList.remove('flex-1');
                 editBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
                 previewBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
             } else {
                 updatePreviewContent();
                 editBox.classList.add('hidden');
+                editBox.classList.remove('flex-1', 'flex');
                 previewBox.classList.remove('hidden');
+                previewBox.classList.add('flex-1');
                 previewBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
                 editBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
             }
@@ -684,7 +707,6 @@
             document.getElementById('memo-date').value = memo.date;
             syncMobileViewHeader(memo);
 
-            // 配列自体も最新が先頭になるよう移動
             if (index > 0) {
                 memos.splice(index, 1);
                 memos.unshift(memo);
@@ -695,7 +717,6 @@
             triggerAutoSave();
         }
 
-        // 一覧からの削除（イベントバブリング防止）
         function deleteMemoById(event, id) {
             event.stopPropagation();
             if (!confirm('このメモを削除してもよろしいですか？')) return;
@@ -710,14 +731,13 @@
             triggerAutoSave();
         }
 
-        // 編集画面からの削除
         function deleteCurrentMemo() {
             if (!currentMemoId) return;
             if (!confirm('このメモを削除してもよろしいですか？')) return;
 
             memos = memos.filter(m => m.id !== currentMemoId);
             currentMemoId = null;
-            
+
             document.getElementById('editor-container').classList.add('hidden');
             document.getElementById('no-memo-selected').classList.remove('hidden');
 
@@ -748,7 +768,6 @@
             }
         }
 
-        // --- ファイル操作（PC & 携帯ハイブリッド） ---
         async function openFile() {
             if (isApiSupported) {
                 try {
@@ -763,7 +782,6 @@
                     if (err.name !== 'AbortError') console.error(err);
                 }
             } else {
-                // スマホ用：ファイル選択インプット起動
                 document.getElementById('fallback-file-input').click();
             }
         }
@@ -781,7 +799,7 @@
                 fallbackFileName = file.name;
                 saveToLocalStorage();
                 document.getElementById('file-path-display').innerText = `読込ファイル: ${file.name}`;
-                
+
                 if (memos.length > 0) selectMemo(memos[0].id);
                 renderMemoList();
                 setFileStatus(true, file.name);
@@ -818,7 +836,6 @@
             } else if (isApiSupported && !fileHandle) {
                 await createNewJsonFile();
             } else {
-                // スマホ等：JSONダウンロード保存
                 saveToLocalStorage();
                 const jsonStr = JSON.stringify(memos, null, 2);
                 const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -857,6 +874,81 @@
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
+
+        // QRコード機能
+        function toggleQRModal() {
+            const modal = document.getElementById('qr-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function showQRForSelection() {
+            const selection = window.getSelection().toString().trim();
+            if (!selection) return;
+
+            const container = document.getElementById('qrcode-container');
+            container.innerHTML = '';
+
+            new QRCode(container, {
+                text: selection,
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+
+            const previewEl = document.getElementById('qr-text-preview');
+            previewEl.innerText = selection.length > 200 ? selection.substring(0, 200) + '...' : selection;
+            toggleQRModal();
+            document.getElementById('floating-qr-btn').classList.add('hidden');
+        }
+
+        // テキスト選択検知（モバイル専用）
+        document.addEventListener('selectionchange', () => {
+            clearTimeout(window.qrSelectionTimer);
+            window.qrSelectionTimer = setTimeout(() => {
+                const text = window.getSelection().toString().trim();
+                const btn = document.getElementById('floating-qr-btn');
+                if (text && window.innerWidth < 640) {
+                    btn.classList.remove('hidden');
+                } else {
+                    btn.classList.add('hidden');
+                }
+            }, 300);
+        });
+
+        // タップで選択解除時にもQRボタンを隠す
+        document.addEventListener('click', (e) => {
+            const btn = document.getElementById('floating-qr-btn');
+            if (e.target !== btn && !btn.contains(e.target)) {
+                setTimeout(() => {
+                    const text = window.getSelection().toString().trim();
+                    if (!text) btn.classList.add('hidden');
+                }, 100);
+            }
+        });
+
+        // リサイズ対応：モバイル/PC切り替えの表示制御
+        window.addEventListener('resize', () => {
+            const isMobile = window.innerWidth < 640;
+            const tabContainer = document.getElementById('editor-tabs');
+            const editBox = document.getElementById('edit-mode-box');
+            const previewBox = document.getElementById('preview-mode-box');
+
+            if (!currentMemoId) return;
+
+            if (isMobile) {
+                if (tabContainer) tabContainer.classList.add('hidden');
+                editBox.classList.add('hidden');
+                editBox.classList.remove('flex-1', 'flex');
+                previewBox.classList.remove('hidden');
+                previewBox.classList.add('flex-1');
+                updatePreviewContent();
+            } else {
+                if (tabContainer) tabContainer.classList.remove('hidden');
+                setEditorMode(editorMode);
+            }
+        });
     </script>
 </body>
 </html>
