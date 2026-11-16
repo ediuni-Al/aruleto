@@ -200,17 +200,24 @@
             gap: 2px;
         }
 
+        .link-list li {
+            border-radius: 4px;
+            transition: transform 0.15s ease, background-color 0.15s ease;
+        }
+
         .link-list a {
             text-decoration: none;
             color: var(--md-on-surface);
             font-size: 0.82rem;
             transition: all 0.1s ease;
             display: block;
-            padding: 2px 6px;
+            padding: 4px 6px;
             border-radius: 3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            -webkit-touch-callout: none; /* iOS等の長押しメニュー抑制 */
+            user-select: none;
         }
 
         .link-list a:hover {
@@ -218,6 +225,28 @@
             color: var(--md-primary);
             padding-left: 10px;
             font-weight: 500;
+        }
+
+        /* 長押しドラッグ中のスタイル */
+        .link-list li.dragging-source {
+            opacity: 0.35;
+            background-color: var(--md-surface-variant);
+            outline: 1px dashed var(--md-primary);
+        }
+
+        .drag-ghost {
+            position: fixed;
+            z-index: 9999;
+            pointer-events: none;
+            background: var(--md-primary);
+            color: #fff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%) scale(1.05);
+            white-space: nowrap;
         }
 
         .admin-section {
@@ -297,7 +326,7 @@
             padding: 20px;
             border-radius: 12px;
             width: 95%;
-            max-width: 650px;
+            max-width: 720px;
             max-height: 85vh;
             overflow-y: auto;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -380,19 +409,33 @@
             font-size: 0.85rem;
         }
 
+        .sort-btn-group {
+            display: inline-flex;
+            gap: 2px;
+        }
+
         .action-sm-btn {
             background: var(--md-surface-variant);
             border: 1px solid var(--md-primary);
             color: var(--md-on-surface);
-            padding: 6px 10px;
+            padding: 5px 8px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.8rem;
+            line-height: 1;
+        }
+        .action-sm-btn:hover {
+            background: var(--md-primary);
+            color: #fff;
         }
         .action-sm-btn.danger {
             background: #ffcccc;
             color: #990000;
             border-color: #ff9999;
+        }
+        .action-sm-btn.danger:hover {
+            background: #cc0000;
+            color: #fff;
         }
 
         .add-btn {
@@ -419,10 +462,30 @@
             font-weight: bold;
         }
 
+        /* トースト通知 */
+        .toast-msg {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--md-primary);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 2000;
+        }
+        .toast-msg.show {
+            opacity: 1;
+        }
+
         @media (max-width: 600px) {
             .link-list { grid-template-columns: 1fr 1fr; }
             .search-container { grid-template-columns: 1fr; gap: 8px; }
-            .edit-row { flex-direction: column; align-items: stretch; }
+            .edit-row { flex-wrap: wrap; }
         }
     </style>
 </head>
@@ -478,7 +541,7 @@
             <button class="close-btn" id="close-settings">✕</button>
         </div>
         <div class="menu-list">
-            <button class="menu-btn" id="btn-open-editor">✏️ 全リンクデータの編集・新規カラム追加</button>
+            <button class="menu-btn" id="btn-open-editor">✏️ 全リンクデータの編集・並べ替え・カラム追加</button>
             <button class="menu-btn" id="btn-toggle-theme">🌙/☀️ テーマ切り替え</button>
             <input type="file" id="import-file" accept=".json" style="display: none;">
             <button class="menu-btn" id="btn-import">📂 JSONを読み込み (インポート)</button>
@@ -491,13 +554,15 @@
 <div class="modal-overlay" id="editor-modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3>✏️ リンクデータの編集</h3>
+            <h3>✏️ リンクデータの編集・並べ替え</h3>
             <button class="close-btn" id="close-editor">✕</button>
         </div>
         <div id="editor-form-container"></div>
         <button class="save-btn" id="btn-save-editor">保存してキャッシュを更新</button>
     </div>
 </div>
+
+<div class="toast-msg" id="toast-msg">並び順を保存しました</div>
 
 <script>
     const STORAGE_KEY = 'start_page_tablet_cache_v1';
@@ -509,6 +574,15 @@
     document.getElementById('btn-settings').addEventListener('click', () => settingsModal.style.display = 'flex');
     document.getElementById('close-settings').addEventListener('click', () => settingsModal.style.display = 'none');
     document.getElementById('close-editor').addEventListener('click', () => editorModal.style.display = 'none');
+
+    // トースト通知
+    function showToast(text) {
+        const toast = document.getElementById('toast-msg');
+        toast.textContent = text;
+        toast.classList.add('show');
+        clearTimeout(toast._timer);
+        toast._timer = setTimeout(() => toast.classList.remove('show'), 1800);
+    }
 
     // テーマ切替
     document.getElementById('btn-toggle-theme').addEventListener('click', () => {
@@ -534,6 +608,144 @@
         var t = 10;
         window.open(url, 'chargingCalc', 'width=' + w + ',height=' + h + ',left=' + l + ',top=' + t + ',scrollbars=yes,resizable=yes');
     }
+
+    // 長押し並べ替え用状態管理
+    let dragState = {
+        active: false,
+        timer: null,
+        sectionIndex: null,
+        sourceLi: null,
+        ghostEl: null,
+        ulEl: null,
+        startX: 0,
+        startY: 0,
+        justDragged: false
+    };
+
+    function startLongPressDrag(li, ul, sectionIndex, clientX, clientY) {
+        dragState.active = true;
+        dragState.sectionIndex = sectionIndex;
+        dragState.sourceLi = li;
+        dragState.ulEl = ul;
+        dragState.justDragged = true;
+
+        if (navigator.vibrate) {
+            navigator.vibrate(35);
+        }
+
+        li.classList.add('dragging-source');
+
+        const ghost = document.createElement('div');
+        ghost.className = 'drag-ghost';
+        ghost.textContent = li.querySelector('a').textContent;
+        ghost.style.left = clientX + 'px';
+        ghost.style.top = clientY + 'px';
+        document.body.appendChild(ghost);
+        dragState.ghostEl = ghost;
+    }
+
+    function moveLongPressDrag(clientX, clientY) {
+        if (!dragState.active || !dragState.ghostEl) return;
+
+        dragState.ghostEl.style.left = clientX + 'px';
+        dragState.ghostEl.style.top = clientY + 'px';
+
+        // 指（カーソル）の下にある要素を取得
+        const elemBelow = document.elementFromPoint(clientX, clientY);
+        if (!elemBelow) return;
+
+        const targetLi = elemBelow.closest('li');
+        if (targetLi && targetLi !== dragState.sourceLi && targetLi.parentElement === dragState.ulEl) {
+            const items = Array.from(dragState.ulEl.children);
+            const sourceIdx = items.indexOf(dragState.sourceLi);
+            const targetIdx = items.indexOf(targetLi);
+
+            if (sourceIdx < targetIdx) {
+                dragState.ulEl.insertBefore(dragState.sourceLi, targetLi.nextSibling);
+            } else {
+                dragState.ulEl.insertBefore(dragState.sourceLi, targetLi);
+            }
+        }
+    }
+
+    function endLongPressDrag() {
+        clearTimeout(dragState.timer);
+        if (!dragState.active) return;
+
+        dragState.sourceLi.classList.remove('dragging-source');
+        if (dragState.ghostEl) {
+            dragState.ghostEl.remove();
+            dragState.ghostEl = null;
+        }
+
+        // 並べ替え後のDOM順序を currentData に反映して保存
+        const sIdx = dragState.sectionIndex;
+        const newLinks = [];
+        Array.from(dragState.ulEl.children).forEach(li => {
+            const origIdx = parseInt(li.dataset.linkIndex, 10);
+            newLinks.push(currentData.sections[sIdx].links[origIdx]);
+        });
+
+        // 順序が変わっていれば保存して再描画
+        const isChanged = newLinks.some((item, idx) => item !== currentData.sections[sIdx].links[idx]);
+        dragState.active = false;
+        dragState.sourceLi = null;
+        dragState.ulEl = null;
+
+        if (isChanged) {
+            currentData.sections[sIdx].links = newLinks;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(currentData, null, 2));
+            renderPage(currentData);
+            showToast('並び順を保存しました');
+        }
+
+        setTimeout(() => { dragState.justDragged = false; }, 100);
+    }
+
+    // グローバル移動・終了イベント（タッチ & マウス両対応）
+    document.addEventListener('touchmove', (e) => {
+        if (dragState.active) {
+            e.preventDefault(); // ドラッグ中は画面スクロールを防止
+            const touch = e.touches[0];
+            moveLongPressDrag(touch.clientX, touch.clientY);
+        } else if (dragState.timer) {
+            const touch = e.touches[0];
+            if (Math.hypot(touch.clientX - dragState.startX, touch.clientY - dragState.startY) > 10) {
+                clearTimeout(dragState.timer);
+                dragState.timer = null;
+            }
+        }
+    }, { passive: false });
+
+    document.addEventListener('touchend', () => {
+        clearTimeout(dragState.timer);
+        dragState.timer = null;
+        endLongPressDrag();
+    });
+
+    document.addEventListener('touchcancel', () => {
+        clearTimeout(dragState.timer);
+        dragState.timer = null;
+        endLongPressDrag();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (dragState.active) {
+            e.preventDefault();
+            moveLongPressDrag(e.clientX, e.clientY);
+        } else if (dragState.timer) {
+            if (Math.hypot(e.clientX - dragState.startX, e.clientY - dragState.startY) > 8) {
+                clearTimeout(dragState.timer);
+                dragState.timer = null;
+            }
+        }
+    });
+
+    document.addEventListener('mouseup', () => {
+        clearTimeout(dragState.timer);
+        dragState.timer = null;
+        endLongPressDrag();
+    });
 
     // 描画処理
     function renderPage(data) {
@@ -570,7 +782,7 @@
         const gridContainer = document.getElementById('stack-grid-sections');
         gridContainer.innerHTML = '';
         if (data.sections) {
-            data.sections.forEach(sectionData => {
+            data.sections.forEach((sectionData, sIndex) => {
                 const sec = document.createElement('section');
                 if (sectionData.is_admin) sec.className = 'admin-section';
 
@@ -581,19 +793,57 @@
                 const ul = document.createElement('ul');
                 ul.className = 'link-list';
                 if (sectionData.links) {
-                    sectionData.links.forEach(link => {
+                    sectionData.links.forEach((link, lIndex) => {
                         const li = document.createElement('li');
+                        li.dataset.linkIndex = lIndex;
+
                         const a = document.createElement('a');
                         a.href = link.url;
                         a.textContent = link.label;
-                        
-                        if (link.popup) {
-                            a.onclick = function(e) {
+                        a.draggable = false; // ブラウザ標準のリンクドラッグを無効化
+
+                        // 長押し後の誤クリック防止 & 右窓対応
+                        a.addEventListener('click', function(e) {
+                            if (dragState.justDragged) {
+                                e.preventDefault();
+                                return false;
+                            }
+                            if (link.popup) {
                                 e.preventDefault();
                                 openRightWindow(this.href);
                                 return false;
-                            };
-                        }
+                            }
+                        });
+
+                        // コンテキストメニュー抑止（長押し時）
+                        a.addEventListener('contextmenu', (e) => {
+                            if (dragState.active || dragState.justDragged) {
+                                e.preventDefault();
+                            }
+                        });
+
+                        // タッチ長押し開始
+                        li.addEventListener('touchstart', (e) => {
+                            if (e.touches.length !== 1) return;
+                            const touch = e.touches[0];
+                            dragState.startX = touch.clientX;
+                            dragState.startY = touch.clientY;
+                            clearTimeout(dragState.timer);
+                            dragState.timer = setTimeout(() => {
+                                startLongPressDrag(li, ul, sIndex, touch.clientX, touch.clientY);
+                            }, 400);
+                        }, { passive: true });
+
+                        // マウス長押し開始（PC操作対応）
+                        li.addEventListener('mousedown', (e) => {
+                            if (e.button !== 0) return;
+                            dragState.startX = e.clientX;
+                            dragState.startY = e.clientY;
+                            clearTimeout(dragState.timer);
+                            dragState.timer = setTimeout(() => {
+                                startLongPressDrag(li, ul, sIndex, e.clientX, e.clientY);
+                            }, 400);
+                        });
                         
                         li.appendChild(a);
                         ul.appendChild(li);
@@ -657,6 +907,18 @@
         URL.revokeObjectURL(url);
     });
 
+    // DOM要素を上下に移動する共通関数
+    function moveRowUp(el) {
+        if (el.previousElementSibling) {
+            el.parentNode.insertBefore(el, el.previousElementSibling);
+        }
+    }
+    function moveRowDown(el) {
+        if (el.nextElementSibling) {
+            el.parentNode.insertBefore(el.nextElementSibling, el);
+        }
+    }
+
     // 編集モーダルフォーム生成
     document.getElementById('btn-open-editor').addEventListener('click', () => {
         if (!currentData) return;
@@ -677,15 +939,25 @@
         ddBox.innerHTML = `<h4>その他頻用 (プルダウン)</h4>`;
         const ddList = document.createElement('div');
         
+        function createDdRow(item = {}) {
+            const row = document.createElement('div');
+            row.className = 'edit-row dd-row';
+            row.innerHTML = `<div class="sort-btn-group">
+                                <button type="button" class="action-sm-btn btn-up" title="上へ">▲</button>
+                                <button type="button" class="action-sm-btn btn-down" title="下へ">▼</button>
+                             </div>
+                             <input type="text" class="dd-icon" value="${item.icon || ''}" placeholder="アイコン" style="max-width: 60px;">
+                             <input type="text" class="dd-label" value="${item.label || ''}" placeholder="ラベル">
+                             <input type="text" class="dd-url" value="${item.url || ''}" placeholder="URL">
+                             <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+            row.querySelector('.btn-up').onclick = () => moveRowUp(row);
+            row.querySelector('.btn-down').onclick = () => moveRowDown(row);
+            return row;
+        }
+
         (currentData.dropdown_menu || []).forEach(item => {
             if (item.type === 'link') {
-                const row = document.createElement('div');
-                row.className = 'edit-row dd-row';
-                row.innerHTML = `<input type="text" class="dd-icon" value="${item.icon || ''}" placeholder="アイコン" style="max-width: 60px;">
-                                 <input type="text" class="dd-label" value="${item.label || ''}" placeholder="ラベル">
-                                 <input type="text" class="dd-url" value="${item.url || ''}" placeholder="URL">
-                                 <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
-                ddList.appendChild(row);
+                ddList.appendChild(createDdRow(item));
             }
         });
         ddBox.appendChild(ddList);
@@ -693,15 +965,7 @@
         addDdBtn.type = 'button';
         addDdBtn.className = 'add-btn';
         addDdBtn.textContent = '+ プルダウン項目追加';
-        addDdBtn.onclick = () => {
-            const row = document.createElement('div');
-            row.className = 'edit-row dd-row';
-            row.innerHTML = `<input type="text" class="dd-icon" placeholder="アイコン" style="max-width: 60px;">
-                             <input type="text" class="dd-label" placeholder="ラベル">
-                             <input type="text" class="dd-url" placeholder="URL">
-                             <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
-            ddList.appendChild(row);
-        };
+        addDdBtn.onclick = () => ddList.appendChild(createDdRow());
         ddBox.appendChild(addDdBtn);
         container.appendChild(ddBox);
 
@@ -711,54 +975,63 @@
         secBox.innerHTML = `<h4>セクション（カラム）一覧</h4>`;
         const secListContainer = document.createElement('div');
 
-        function renderSectionEditor() {
-            secListContainer.innerHTML = '';
-            (currentData.sections || []).forEach((sec, sIndex) => {
-                const sDiv = document.createElement('div');
-                sDiv.style.border = '1px dashed var(--md-primary)';
-                sDiv.style.padding = '8px';
-                sDiv.style.marginBottom = '10px';
-                sDiv.style.borderRadius = '6px';
-                sDiv.className = 'sec-item-box';
-
-                sDiv.innerHTML = `
-                    <div class="edit-row">
-                        <input type="text" class="sec-icon" value="${sec.icon || ''}" placeholder="アイコン" style="max-width: 50px;">
-                        <input type="text" class="sec-title" value="${sec.title || ''}" placeholder="セクション名">
-                        <label><input type="checkbox" class="sec-admin" ${sec.is_admin ? 'checked' : ''}> 自宅専用</label>
-                        <button type="button" class="action-sm-btn danger" onclick="this.closest('.sec-item-box').remove()">セクション削除</button>
-                    </div>
-                    <div class="sec-links-list"></div>
-                `;
-                const linksListEl = sDiv.querySelector('.sec-links-list');
-                (sec.links || []).forEach(l => {
-                    const lRow = document.createElement('div');
-                    lRow.className = 'edit-row link-row';
-                    lRow.innerHTML = `<input type="text" class="l-label" value="${l.label || ''}" placeholder="タイトル">
-                                      <input type="text" class="l-url" value="${l.url || ''}" placeholder="URL">
-                                      <label><input type="checkbox" class="l-popup" ${l.popup ? 'checked' : ''}> 右窓</label>
-                                      <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
-                    linksListEl.appendChild(lRow);
-                });
-
-                const addLinkBtn = document.createElement('button');
-                addLinkBtn.type = 'button';
-                addLinkBtn.className = 'add-btn';
-                addLinkBtn.textContent = '+ リンク追加';
-                addLinkBtn.onclick = () => {
-                    const lRow = document.createElement('div');
-                    lRow.className = 'edit-row link-row';
-                    lRow.innerHTML = `<input type="text" class="l-label" placeholder="タイトル">
-                                      <input type="text" class="l-url" placeholder="URL">
-                                      <label><input type="checkbox" class="l-popup"> 右窓</label>
-                                      <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
-                    linksListEl.appendChild(lRow);
-                };
-                sDiv.appendChild(addLinkBtn);
-                secListContainer.appendChild(sDiv);
-            });
+        function createLinkRow(l = {}) {
+            const lRow = document.createElement('div');
+            lRow.className = 'edit-row link-row';
+            lRow.innerHTML = `<div class="sort-btn-group">
+                                <button type="button" class="action-sm-btn btn-up" title="上へ">▲</button>
+                                <button type="button" class="action-sm-btn btn-down" title="下へ">▼</button>
+                              </div>
+                              <input type="text" class="l-label" value="${l.label || ''}" placeholder="タイトル">
+                              <input type="text" class="l-url" value="${l.url || ''}" placeholder="URL">
+                              <label><input type="checkbox" class="l-popup" ${l.popup ? 'checked' : ''}> 右窓</label>
+                              <button type="button" class="action-sm-btn danger" onclick="this.parentElement.remove()">削除</button>`;
+            lRow.querySelector('.btn-up').onclick = () => moveRowUp(lRow);
+            lRow.querySelector('.btn-down').onclick = () => moveRowDown(lRow);
+            return lRow;
         }
-        renderSectionEditor();
+
+        function createSectionBox(sec = { title: "新規セクション", icon: "📁", links: [] }) {
+            const sDiv = document.createElement('div');
+            sDiv.style.border = '1px dashed var(--md-primary)';
+            sDiv.style.padding = '8px';
+            sDiv.style.marginBottom = '10px';
+            sDiv.style.borderRadius = '6px';
+            sDiv.className = 'sec-item-box';
+
+            sDiv.innerHTML = `
+                <div class="edit-row">
+                    <div class="sort-btn-group">
+                        <button type="button" class="action-sm-btn sec-up" title="セクションを上へ">▲</button>
+                        <button type="button" class="action-sm-btn sec-down" title="セクションを下へ">▼</button>
+                    </div>
+                    <input type="text" class="sec-icon" value="${sec.icon || ''}" placeholder="アイコン" style="max-width: 50px;">
+                    <input type="text" class="sec-title" value="${sec.title || ''}" placeholder="セクション名">
+                    <label><input type="checkbox" class="sec-admin" ${sec.is_admin ? 'checked' : ''}> 自宅専用</label>
+                    <button type="button" class="action-sm-btn danger" onclick="this.closest('.sec-item-box').remove()">セクション削除</button>
+                </div>
+                <div class="sec-links-list"></div>
+            `;
+            sDiv.querySelector('.sec-up').onclick = () => moveRowUp(sDiv);
+            sDiv.querySelector('.sec-down').onclick = () => moveRowDown(sDiv);
+
+            const linksListEl = sDiv.querySelector('.sec-links-list');
+            (sec.links || []).forEach(l => {
+                linksListEl.appendChild(createLinkRow(l));
+            });
+
+            const addLinkBtn = document.createElement('button');
+            addLinkBtn.type = 'button';
+            addLinkBtn.className = 'add-btn';
+            addLinkBtn.textContent = '+ リンク追加';
+            addLinkBtn.onclick = () => linksListEl.appendChild(createLinkRow());
+            sDiv.appendChild(addLinkBtn);
+            return sDiv;
+        }
+
+        (currentData.sections || []).forEach(sec => {
+            secListContainer.appendChild(createSectionBox(sec));
+        });
         secBox.appendChild(secListContainer);
 
         const addSecBtn = document.createElement('button');
@@ -767,8 +1040,7 @@
         addSecBtn.style.background = '#2a9d8f';
         addSecBtn.textContent = '+ 新規セクション追加';
         addSecBtn.onclick = () => {
-            currentData.sections.push({ title: "新規セクション", icon: "📁", links: [] });
-            renderSectionEditor();
+            secListContainer.appendChild(createSectionBox());
         };
         secBox.appendChild(addSecBtn);
         container.appendChild(secBox);
