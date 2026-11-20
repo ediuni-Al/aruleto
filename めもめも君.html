@@ -13,23 +13,25 @@
     <input type="file" id="fallback-file-input" accept=".json" onchange="handleFallbackFileSelected(event)" class="hidden">
 
     <!-- ヘッダー -->
-    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between shadow-sm shrink-0 z-20">
-        <div class="flex items-center space-x-3">
+    <header class="bg-white border-b border-slate-200 px-3 sm:px-6 py-3 flex items-center justify-between shadow-sm shrink-0 z-20">
+        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0">
             <!-- モバイル用メニューボタン -->
-            <button onclick="toggleMobileSidebar()" class="sm:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-xl transition" title="メニュー">
+            <button onclick="toggleMobileSidebar()" class="sm:hidden p-1.5 text-slate-600 hover:bg-slate-100 rounded-xl transition shrink-0" title="メニュー">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
-            <span class="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5">
-                <span class="sm:hidden">📋 めもめも君(読み取り専用)</span>
-                <span class="hidden sm:inline">📋 めもめも君</span>
+            <span class="text-base sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent flex items-center gap-1.5 truncate">
+                <span>📋 めもめも君</span>
             </span>
-            <span id="file-status" class="hidden xs:inline-block text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold">
+            <span id="file-status" class="hidden xs:inline-block text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold shrink-0">
                 未接続
             </span>
         </div>
-        <div class="flex items-center space-x-2">
-            <button onclick="saveFile()" class="hidden sm:flex px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm items-center gap-1">
-                💾 保存
+        <div class="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+            <button onclick="createNewMemo()" class="sm:hidden px-2.5 py-1.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm">
+                ＋ 新規
+            </button>
+            <button onclick="saveFile()" class="px-2.5 sm:px-4 py-1.5 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition shadow-sm flex items-center gap-1">
+                💾 <span class="hidden sm:inline">保存</span>
             </button>
             <button onclick="toggleSettingsModal()" class="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition border border-transparent hover:border-slate-200" title="設定 & ヘルプ">
                 ⚙️
@@ -99,14 +101,17 @@
         <!-- 背景オーバーレイ（モバイル用） -->
         <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/30 z-0 sm:hidden hidden"></div>
 
-        <!-- 右側：エディタエリア -->
+        <!-- 右側：エディタ / 閲覧エリア -->
         <main class="flex-1 bg-slate-100/70 flex flex-col p-2 sm:p-6 overflow-y-auto">
             <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 sm:p-6 flex flex-col h-full hidden">
 
-                <!-- スマホ用：一覧に戻るボタン -->
+                <!-- スマホ用：一覧に戻る＆別画面編集ボタン -->
                 <div class="sm:hidden pb-2.5 mb-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
                     <button onclick="toggleMobileSidebar()" class="text-sm font-bold text-blue-600 flex items-center space-x-1 py-1">
                         <span>← 一覧へ</span>
+                    </button>
+                    <button onclick="openMobileEditor()" class="px-3 py-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs transition flex items-center gap-1">
+                        <span>✏️</span> 別画面で編集
                     </button>
                 </div>
 
@@ -120,24 +125,45 @@
                     <h2 id="mobile-view-title" class="text-lg font-bold text-slate-900 leading-snug break-words select-text"></h2>
                 </div>
 
-                <!-- タイトル・メタデータ編集ブロック（PCのみ表示） -->
-                <div id="meta-edit-section" class="hidden sm:block shrink-0">
-                    <!-- タイトル入力欄 -->
-                    <div class="pb-3 sm:pb-4 border-b border-slate-100">
+                <!-- PC用：タブ切り替えバー -->
+                <div id="pc-editor-tabs" class="hidden sm:flex items-center justify-between pb-3 mb-3 border-b border-slate-100 shrink-0">
+                    <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-bold gap-1">
+                        <button type="button" id="tab-edit-btn" onclick="setPcTab('edit')" class="px-3.5 py-1.5 rounded-lg bg-white text-blue-600 shadow-xs transition">
+                            ✏️ 編集
+                        </button>
+                        <button type="button" id="tab-meta-btn" onclick="setPcTab('meta')" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-800 transition">
+                            🏷️ 分類・重要度
+                        </button>
+                        <button type="button" id="tab-preview-btn" onclick="setPcTab('preview')" class="px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-800 transition">
+                            👁️ プレビュー
+                        </button>
+                    </div>
+                    <span id="pc-current-meta-summary" class="text-xs text-slate-400 font-mono"></span>
+                </div>
+
+                <!-- PCタブ1：編集モード（タイトル＋本文） -->
+                <div id="pc-tab-edit" class="hidden sm:flex flex-col flex-1 min-h-[260px] space-y-3">
+                    <div>
                         <label class="block text-xs font-bold text-slate-500 mb-1">タイトル</label>
                         <input type="text" id="memo-title" oninput="updateCurrentMemo()" placeholder="メモのタイトルを入力..." class="w-full px-3.5 py-2 text-sm sm:text-base font-bold text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
                     </div>
+                    <div class="flex flex-col flex-1 min-h-[180px]">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">内容</label>
+                        <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-3.5 sm:p-4 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
+                    </div>
+                </div>
 
-                    <!-- 上部メタデータ設定 -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 py-3 sm:py-4 border-b border-slate-100">
+                <!-- PCタブ2：分類・重要度・タグ設定 -->
+                <div id="pc-tab-meta" class="hidden flex-col flex-1 overflow-y-auto space-y-4 py-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1">分類タグ</label>
-                            <input type="text" id="memo-category" list="category-suggestions" oninput="updateCurrentMemo()" placeholder="選択または自由入力..." class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                            <input type="text" id="memo-category" list="category-suggestions" oninput="updateCurrentMemo()" placeholder="選択または自由入力..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
                             <datalist id="category-suggestions"></datalist>
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1">重要度</label>
-                            <select id="memo-importance" onchange="updateCurrentMemo()" class="w-full px-3 py-1.5 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                            <select id="memo-importance" onchange="updateCurrentMemo()" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
                                 <option value="低">🟢 低</option>
                                 <option value="中" selected>🟡 中</option>
                                 <option value="高">🔴 高</option>
@@ -145,29 +171,17 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-500 mb-1">更新日時</label>
-                            <input type="text" id="memo-date" disabled class="w-full px-3 py-1.5 text-sm border border-slate-100 bg-slate-50 text-slate-500 rounded-xl font-mono">
+                            <input type="text" id="memo-date" disabled class="w-full px-3 py-2 text-sm border border-slate-100 bg-slate-50 text-slate-500 rounded-xl font-mono">
                         </div>
                     </div>
 
-                    <!-- プリセット＆履歴クイック選択チップ -->
-                    <div class="pt-3 pb-2 flex flex-wrap items-center gap-1.5" id="category-chips"></div>
-                </div>
-
-                <!-- 編集 / プレビュー 切り替えタブ（PCのみ） -->
-                <div id="editor-tabs" class="hidden sm:flex items-center justify-between pt-2 pb-1.5 shrink-0">
-                    <label class="text-xs font-bold text-slate-500">内容</label>
-                    <div class="flex bg-slate-100 p-0.5 rounded-lg text-xs font-bold">
-                        <button type="button" id="tab-edit-btn" onclick="setEditorMode('edit')" class="px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition">✏️ 編集</button>
-                        <button type="button" id="tab-preview-btn" onclick="setEditorMode('preview')" class="px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition">👁️ プレビュー</button>
+                    <div class="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                        <div class="text-xs font-bold text-slate-600">クイック分類選択</div>
+                        <div class="flex flex-wrap items-center gap-1.5" id="category-chips"></div>
                     </div>
                 </div>
 
-                <!-- テキストエリア（編集モード：PCのみ） -->
-                <div id="edit-mode-box" class="hidden flex-col min-h-[250px]">
-                    <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="ここにメモの本文を入力してください..." class="flex-1 w-full p-3.5 sm:p-4 text-base sm:text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
-                </div>
-
-                <!-- プレビュー表示（閲覧モード：モバイルでは常時表示） -->
+                <!-- プレビュー表示（PCプレビュータブ / モバイル常時表示） -->
                 <div id="preview-mode-box" class="hidden overflow-y-auto p-3.5 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
 
                 <!-- フッター操作（PCのみ） -->
@@ -187,11 +201,68 @@
                 <div class="text-4xl mb-3">📝</div>
                 <p class="text-base font-bold text-slate-500">メモを選択するか、新規作成してください</p>
                 <p class="text-xs mt-1">右上の「⚙️ 設定」からJSONファイルの読み込みができます</p>
-                <button onclick="toggleMobileSidebar()" class="sm:hidden mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow">
-                    メモ一覧を開く
-                </button>
+                <div class="sm:hidden mt-4 flex items-center gap-2">
+                    <button onclick="toggleMobileSidebar()" class="px-4 py-2 bg-slate-700 text-white rounded-xl text-xs font-bold shadow">
+                        メモ一覧を開く
+                    </button>
+                    <button onclick="createNewMemo()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow">
+                        ＋ 新規作成
+                    </button>
+                </div>
             </div>
         </main>
+    </div>
+
+    <!-- モバイル専用：別画面 編集スクリーン -->
+    <div id="mobile-edit-screen" class="fixed inset-0 bg-white z-40 hidden flex-col sm:hidden">
+        <div class="px-4 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+            <button type="button" onclick="closeMobileEditor()" class="text-sm font-bold text-slate-600 hover:text-slate-900 py-1">
+                ← 戻る
+            </button>
+            <span class="text-sm font-bold text-slate-800">✏️ メモ編集</span>
+            <button type="button" onclick="closeMobileEditor()" class="px-3.5 py-1.5 text-xs font-bold bg-blue-600 text-white rounded-xl shadow-xs">
+                完了
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 mb-1">タイトル</label>
+                <input type="text" id="mobile-edit-title" oninput="syncFromMobileEditor()" placeholder="タイトルを入力..." class="w-full px-3.5 py-2.5 text-base font-bold text-slate-800 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">分類タグ</label>
+                    <input type="text" id="mobile-edit-category" list="category-suggestions" oninput="syncFromMobileEditor()" placeholder="分類..." class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">重要度</label>
+                    <select id="mobile-edit-importance" onchange="syncFromMobileEditor()" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
+                        <option value="低">🟢 低</option>
+                        <option value="中">🟡 中</option>
+                        <option value="高">🔴 高</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <div class="text-[11px] font-bold text-slate-400 mb-1.5">タグ候補をタップで反映:</div>
+                <div id="mobile-category-chips" class="flex flex-wrap gap-1.5"></div>
+            </div>
+
+            <div class="flex-1 flex flex-col">
+                <label class="block text-xs font-bold text-slate-500 mb-1">本文</label>
+                <textarea id="mobile-edit-content" oninput="syncFromMobileEditor()" placeholder="ここにメモを入力..." class="w-full min-h-[260px] p-3.5 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed select-text"></textarea>
+            </div>
+        </div>
+
+        <div class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
+            <span id="mobile-edit-stats" class="text-xs text-slate-400">0 文字 / 0 行</span>
+            <button type="button" onclick="deleteCurrentMemoMobile()" class="px-3 py-1.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition">
+                🗑️ 削除
+            </button>
+        </div>
     </div>
 
     <!-- 設定 & ヘルプ モーダル -->
@@ -206,7 +277,7 @@
                 <!-- 1. データ保存・ファイル設定 -->
                 <div>
                     <h4 class="font-bold text-slate-800 mb-2">📁 JSONデータ管理</h4>
-                    <p class="text-xs text-slate-500 mb-2.5" id="env-mode-desc">PC環境では自動保存・編集、携帯環境では読み取り専用（手動読込のみ）に対応しています。</p>
+                    <p class="text-xs text-slate-500 mb-2.5" id="env-mode-desc">PC環境では自動保存・編集、携帯環境ではJSONの読み込み・ダウンロード保存に対応しています。</p>
                     <div id="file-path-display" class="p-3 bg-slate-50 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 break-all mb-3">
                         ファイル未接続
                     </div>
@@ -221,11 +292,10 @@
                             紐付け解除
                         </button>
                     </div>
-                    <p id="fs-api-warning" class="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 p-2.5 rounded-xl mt-2.5 hidden"></p>
                 </div>
 
-                <!-- 2. 分類プリセット設定（PCのみ） -->
-                <div class="hidden sm:block border-t border-slate-100 pt-5">
+                <!-- 2. 分類プリセット設定 -->
+                <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">🏷️ 分類タグのプリセット設定</h4>
                     <div class="flex gap-2 mb-3">
                         <input type="text" id="new-preset-input" onkeydown="if(event.key==='Enter') addPreset()" placeholder="新しい分類名（例: 仕事, 読書）" class="flex-1 px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text">
@@ -238,8 +308,8 @@
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
-                        <li><strong>PC (Brave/Chrome等):</strong> 一度「新規作成」または「JSONを開く」を行うと、以降は入力のたびに自動でファイルに上書き保存できます。</li>
-                        <li><strong>携帯・非対応ブラウザ:</strong> 「JSONを開く」から端末内のJSONを選択して読み込みます。編集はPC版で行ってください。</li>
+                        <li><strong>PC (Brave/Chrome等):</strong> 「編集」「分類・重要度」「プレビュー」タブで切り替え可能。ファイル紐付け後は自動上書き保存されます。</li>
+                        <li><strong>モバイル:</strong> 「別画面で編集」または「＋ 新規」から編集画面を開けます。JSONは「保存」からダウンロードできます。</li>
                     </ul>
                 </div>
 
@@ -257,13 +327,13 @@
         let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['メモ', '旅行', 'レシピ'];
 
         let memos = JSON.parse(localStorage.getItem(MEMOS_STORAGE_KEY)) || [
-            { 
-                id: "1", 
+            {
+                id: "1",
                 title: "めもめも君へようこそ！",
-                category: "メモ", 
-                importance: "中", 
-                date: getNowTimestamp(), 
-                content: "めもめも君へようこそ！\n\n右上の設定ボタン（⚙️）からJSONファイルを開いて読み書きできます。\n\n【モバイル版について】\n・読み取り専用です（保存・編集はPC版で）" 
+                category: "メモ",
+                importance: "中",
+                date: getNowTimestamp(),
+                content: "めもめも君へようこそ！\n\nPC版では「編集」「分類・重要度」「プレビュー」タブを切り替えられます。\nモバイル版でも「別画面で編集」からメモの作成・編集が可能です。"
             }
         ];
 
@@ -272,11 +342,10 @@
         let savedHandleCandidate = null;
         let fallbackFileName = "memos.json";
         let autoSaveTimer = null;
-        let editorMode = 'edit';
+        let pcActiveTab = 'edit';
 
         const isApiSupported = 'showOpenFilePicker' in window;
 
-        // IndexedDB（PC用ファイルハンドル記憶）
         const DB_NAME = 'MemoKunFileDB';
         const STORE_NAME = 'fileHandles';
 
@@ -351,7 +420,7 @@
         function updateEnvModeUI() {
             if (!isApiSupported) {
                 document.getElementById('pc-create-btn').classList.add('hidden');
-                document.getElementById('env-mode-desc').innerText = "モバイル・非対応ブラウザ環境です。「JSONを開く」でファイルを選択し、読み取り専用で閲覧します。編集はPC版で行ってください。";
+                document.getElementById('env-mode-desc').innerText = "モバイル・非対応ブラウザ環境です。別画面での編集・新規作成に対応し、「保存」からJSONをダウンロードできます。";
             }
         }
 
@@ -463,23 +532,30 @@
         function renderCategoryChips() {
             const allCats = getAllKnownCategories();
             const chipsContainer = document.getElementById('category-chips');
+            const mobileChipsContainer = document.getElementById('mobile-category-chips');
             const datalist = document.getElementById('category-suggestions');
 
             datalist.innerHTML = allCats.map(c => `<option value="${escapeHtml(c)}">`).join('');
 
-            chipsContainer.innerHTML = `<span class="text-[11px] font-bold text-slate-400 mr-1">タグ候補:</span>` + 
-                allCats.map(c => {
-                    const isPreset = categoryPresets.includes(c);
-                    return `<button type="button" onclick="applyCategoryChip('${escapeHtml(c)}')" class="text-xs px-2.5 py-0.5 rounded-lg border font-medium transition ${isPreset ? 'bg-blue-50/80 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'}">${escapeHtml(c)}</button>`;
-                }).join('');
+            const chipsHtml = allCats.map(c => {
+                const isPreset = categoryPresets.includes(c);
+                return `<button type="button" onclick="applyCategoryChip('${escapeHtml(c)}')" class="text-xs px-2.5 py-1 rounded-lg border font-medium transition ${isPreset ? 'bg-blue-50/80 border-blue-200 text-blue-700 hover:bg-blue-100' : 'bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200'}">${escapeHtml(c)}</button>`;
+            }).join('');
+
+            if (chipsContainer) chipsContainer.innerHTML = chipsHtml;
+            if (mobileChipsContainer) mobileChipsContainer.innerHTML = chipsHtml;
         }
 
         function applyCategoryChip(cat) {
             document.getElementById('memo-category').value = cat;
-            updateCurrentMemo();
+            document.getElementById('mobile-edit-category').value = cat;
+            if (window.innerWidth < 640) {
+                syncFromMobileEditor();
+            } else {
+                updateCurrentMemo();
+            }
         }
 
-        // メモ一覧描画
         function renderMemoList() {
             const listEl = document.getElementById('memo-list');
             const searchKeyword = document.getElementById('search-input').value.toLowerCase();
@@ -548,7 +624,7 @@
             const currentVal = select.value;
             const categories = getAllKnownCategories();
 
-            select.innerHTML = '<option value="">すべての分類</option>' + 
+            select.innerHTML = '<option value="">すべての分類</option>' +
                 categories.map(c => `<option value="${escapeHtml(c)}" ${c === currentVal ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
         }
 
@@ -566,6 +642,12 @@
             dateEl.innerText = memo.date || '';
         }
 
+        function syncPcMetaSummary(memo) {
+            const summaryEl = document.getElementById('pc-current-meta-summary');
+            if (!summaryEl || !memo) return;
+            summaryEl.innerText = `${memo.category || '未分類'} / 重要度: ${memo.importance || '中'} / ${memo.date || ''}`;
+        }
+
         function selectMemo(id, preferEditMode = false) {
             currentMemoId = id;
             const memo = memos.find(m => m.id === id);
@@ -581,60 +663,116 @@
             document.getElementById('memo-content').value = memo.content || '';
 
             syncMobileViewHeader(memo);
+            syncPcMetaSummary(memo);
             updateCounters(memo.content || '');
             updatePreviewContent();
             renderMemoList();
 
             const isMobile = window.innerWidth < 640;
-            const editBox = document.getElementById('edit-mode-box');
-            const previewBox = document.getElementById('preview-mode-box');
-            const tabContainer = document.getElementById('editor-tabs');
-
             if (isMobile) {
-                if (tabContainer) tabContainer.classList.add('hidden');
-                editBox.classList.add('hidden');
-                editBox.classList.remove('flex-1', 'flex');
-                previewBox.classList.remove('hidden');
-                previewBox.classList.add('flex-1');
-                updatePreviewContent();
-
+                applyMobileLayoutMode();
                 const sidebar = document.getElementById('sidebar');
                 if (!sidebar.classList.contains('-translate-x-full')) {
                     toggleMobileSidebar();
                 }
             } else {
-                if (tabContainer) tabContainer.classList.remove('hidden');
-                if (preferEditMode) {
-                    setEditorMode('edit');
-                } else {
-                    setEditorMode('preview');
-                }
+                setPcTab(preferEditMode ? 'edit' : pcActiveTab);
             }
         }
 
-        function setEditorMode(mode) {
-            editorMode = mode;
-            const editBox = document.getElementById('edit-mode-box');
-            const previewBox = document.getElementById('preview-mode-box');
+        function setPcTab(tabName) {
+            pcActiveTab = tabName;
+            const editPanel = document.getElementById('pc-tab-edit');
+            const metaPanel = document.getElementById('pc-tab-meta');
+            const previewPanel = document.getElementById('preview-mode-box');
+
             const editBtn = document.getElementById('tab-edit-btn');
+            const metaBtn = document.getElementById('tab-meta-btn');
             const previewBtn = document.getElementById('tab-preview-btn');
 
-            if (mode === 'edit') {
-                editBox.classList.remove('hidden');
-                editBox.classList.add('flex-1', 'flex');
-                previewBox.classList.add('hidden');
-                previewBox.classList.remove('flex-1');
-                editBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
-                previewBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
-            } else {
+            const activeClass = "px-3.5 py-1.5 rounded-lg bg-white text-blue-600 shadow-xs transition";
+            const inactiveClass = "px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-slate-800 transition";
+
+            editBtn.className = tabName === 'edit' ? activeClass : inactiveClass;
+            metaBtn.className = tabName === 'meta' ? activeClass : inactiveClass;
+            previewBtn.className = tabName === 'preview' ? activeClass : inactiveClass;
+
+            if (window.innerWidth < 640) return;
+
+            editPanel.classList.add('hidden');
+            editPanel.classList.remove('sm:flex');
+            metaPanel.classList.add('hidden');
+            metaPanel.classList.remove('flex');
+            previewPanel.classList.add('hidden');
+            previewPanel.classList.remove('flex-1');
+
+            if (tabName === 'edit') {
+                editPanel.classList.remove('hidden');
+                editPanel.classList.add('sm:flex');
+            } else if (tabName === 'meta') {
+                metaPanel.classList.remove('hidden');
+                metaPanel.classList.add('flex');
+            } else if (tabName === 'preview') {
                 updatePreviewContent();
-                editBox.classList.add('hidden');
-                editBox.classList.remove('flex-1', 'flex');
-                previewBox.classList.remove('hidden');
-                previewBox.classList.add('flex-1');
-                previewBtn.className = "px-3 py-1 rounded-md bg-white text-blue-600 shadow-xs transition";
-                editBtn.className = "px-3 py-1 rounded-md text-slate-500 hover:text-slate-700 transition";
+                previewPanel.classList.remove('hidden');
+                previewPanel.classList.add('flex-1');
             }
+        }
+
+        function applyMobileLayoutMode() {
+            const editPanel = document.getElementById('pc-tab-edit');
+            const metaPanel = document.getElementById('pc-tab-meta');
+            const previewPanel = document.getElementById('preview-mode-box');
+
+            editPanel.classList.add('hidden');
+            editPanel.classList.remove('sm:flex');
+            metaPanel.classList.add('hidden');
+            metaPanel.classList.remove('flex');
+
+            updatePreviewContent();
+            previewPanel.classList.remove('hidden');
+            previewPanel.classList.add('flex-1');
+        }
+
+        function openMobileEditor() {
+            if (!currentMemoId) return;
+            const memo = memos.find(m => m.id === currentMemoId);
+            if (!memo) return;
+
+            document.getElementById('mobile-edit-title').value = memo.title || '';
+            document.getElementById('mobile-edit-category').value = memo.category || '';
+            document.getElementById('mobile-edit-importance').value = memo.importance || '中';
+            document.getElementById('mobile-edit-content').value = memo.content || '';
+            updateMobileStats(memo.content || '');
+            renderCategoryChips();
+
+            const screen = document.getElementById('mobile-edit-screen');
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+        }
+
+        function closeMobileEditor() {
+            const screen = document.getElementById('mobile-edit-screen');
+            screen.classList.add('hidden');
+            screen.classList.remove('flex');
+            updatePreviewContent();
+        }
+
+        function updateMobileStats(text) {
+            const statsEl = document.getElementById('mobile-edit-stats');
+            if (!statsEl) return;
+            const lines = text ? text.split('\n').length : 0;
+            statsEl.innerText = `${text.length} 文字 / ${lines} 行`;
+        }
+
+        function syncFromMobileEditor() {
+            if (!currentMemoId) return;
+            document.getElementById('memo-title').value = document.getElementById('mobile-edit-title').value;
+            document.getElementById('memo-category').value = document.getElementById('mobile-edit-category').value;
+            document.getElementById('memo-importance').value = document.getElementById('mobile-edit-importance').value;
+            document.getElementById('memo-content').value = document.getElementById('mobile-edit-content').value;
+            updateMobileStats(document.getElementById('mobile-edit-content').value);
+            updateCurrentMemo();
         }
 
         function updatePreviewContent() {
@@ -661,9 +799,15 @@
                 content: ''
             };
             memos.unshift(newMemo);
-            setEditorMode('edit');
             selectMemo(newMemo.id, true);
-            document.getElementById('memo-title').focus();
+
+            if (window.innerWidth < 640) {
+                openMobileEditor();
+                document.getElementById('mobile-edit-title').focus();
+            } else {
+                setPcTab('edit');
+                document.getElementById('memo-title').focus();
+            }
             triggerAutoSave();
         }
 
@@ -681,6 +825,7 @@
 
             document.getElementById('memo-date').value = memo.date;
             syncMobileViewHeader(memo);
+            syncPcMetaSummary(memo);
 
             if (index > 0) {
                 memos.splice(index, 1);
@@ -718,6 +863,13 @@
 
             renderMemoList();
             triggerAutoSave();
+        }
+
+        function deleteCurrentMemoMobile() {
+            if (!currentMemoId) return;
+            if (!confirm('このメモを削除してもよろしいですか？')) return;
+            closeMobileEditor();
+            deleteCurrentMemo();
         }
 
         function triggerAutoSave() {
@@ -845,30 +997,20 @@
         }
 
         function escapeHtml(str) {
-            return String(str).replace(/[&<>'"]/g, 
+            return String(str).replace(/[&<>'"]/g,
                 tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
             );
         }
 
-        // リサイズ対応：モバイル/PC切り替えの表示制御
         window.addEventListener('resize', () => {
-            const isMobile = window.innerWidth < 640;
-            const tabContainer = document.getElementById('editor-tabs');
-            const editBox = document.getElementById('edit-mode-box');
-            const previewBox = document.getElementById('preview-mode-box');
-
             if (!currentMemoId) return;
-
-            if (isMobile) {
-                if (tabContainer) tabContainer.classList.add('hidden');
-                editBox.classList.add('hidden');
-                editBox.classList.remove('flex-1', 'flex');
-                previewBox.classList.remove('hidden');
-                previewBox.classList.add('flex-1');
-                updatePreviewContent();
+            if (window.innerWidth < 640) {
+                applyMobileLayoutMode();
             } else {
-                if (tabContainer) tabContainer.classList.remove('hidden');
-                setEditorMode(editorMode);
+                const mobileScreen = document.getElementById('mobile-edit-screen');
+                mobileScreen.classList.add('hidden');
+                mobileScreen.classList.remove('flex');
+                setPcTab(pcActiveTab);
             }
         });
     </script>
