@@ -107,32 +107,35 @@
 
         <!-- 右側：エディタ / 閲覧エリア -->
         <main class="flex-1 bg-slate-100/70 flex flex-col p-2 sm:p-6 overflow-y-auto">
-            <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 sm:p-6 flex flex-col h-full hidden">
+            <div id="editor-container" class="max-w-4xl w-full mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-3 sm:p-6 flex flex-col h-full hidden">
 
-                <!-- スマホ用：一覧に戻る＆別画面編集ボタン -->
-                <div class="sm:hidden pb-2.5 mb-2.5 border-b border-slate-100 flex items-center justify-between shrink-0">
-                    <button onclick="toggleMobileSidebar()" class="text-sm font-bold text-blue-600 flex items-center space-x-1 py-1">
+                <!-- スマホ用：一覧に戻る＆文字サイズ＆別画面編集ボタン -->
+                <div class="sm:hidden pb-2 mb-2 border-b border-slate-100 flex items-center justify-between shrink-0 gap-1">
+                    <button onclick="toggleMobileSidebar()" class="text-xs font-bold text-blue-600 flex items-center space-x-1 py-1 shrink-0">
                         <span>← 一覧へ</span>
                     </button>
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="togglePinCurrentMemo()" id="mobile-pin-btn" class="px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg transition">
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="cycleFontSize()" id="mobile-fontsize-btn" class="px-2 py-1 text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200 rounded-lg transition" title="文字サイズ変更">
+                            文字:標準
+                        </button>
+                        <button onclick="togglePinCurrentMemo()" id="mobile-pin-btn" class="px-2 py-1 text-xs font-bold bg-slate-100 text-slate-700 rounded-lg transition">
                             📌
                         </button>
-                        <button onclick="openMobileEditor()" class="px-3 py-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs transition flex items-center gap-1">
-                            <span>✏️</span> 別画面で編集
+                        <button onclick="openMobileEditor()" class="px-2.5 py-1 text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-xs transition flex items-center gap-1">
+                            <span>✏️</span> 編集
                         </button>
                     </div>
                 </div>
 
                 <!-- スマホ閲覧時用：コンパクトなタイトル・メタ情報ヘッダー -->
-                <div id="mobile-view-header" class="sm:hidden pb-3 mb-2 border-b border-slate-100 shrink-0">
-                    <div class="flex flex-wrap items-center gap-1.5 mb-1.5">
-                        <span id="mobile-view-pin" class="hidden text-xs font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-md">📌 固定</span>
-                        <span id="mobile-view-category" class="text-xs font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-200/70">未分類</span>
-                        <span id="mobile-view-importance" class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">重要度: 中</span>
-                        <span id="mobile-view-date" class="text-[11px] text-slate-400 font-mono ml-auto"></span>
+                <div id="mobile-view-header" class="sm:hidden pb-2.5 mb-2 border-b border-slate-100 shrink-0">
+                    <div class="flex flex-wrap items-center gap-1 mb-1">
+                        <span id="mobile-view-pin" class="hidden text-[11px] font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded-md">📌 固定</span>
+                        <span id="mobile-view-category" class="text-[11px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-md border border-blue-200/70">未分類</span>
+                        <span id="mobile-view-importance" class="text-[11px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800">重要度: 中</span>
+                        <span id="mobile-view-date" class="text-[10px] text-slate-400 font-mono ml-auto"></span>
                     </div>
-                    <h2 id="mobile-view-title" class="text-lg font-bold text-slate-900 leading-snug break-words select-text"></h2>
+                    <h2 id="mobile-view-title" class="text-base font-bold text-slate-900 leading-snug break-words select-text"></h2>
                 </div>
 
                 <!-- PC用：タブ切り替え＆アクションバー -->
@@ -146,13 +149,19 @@
                         </button>
                     </div>
                     <div class="flex items-center gap-2">
+                        <div class="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200/80 text-[11px] font-bold" title="表示文字サイズ">
+                            <button type="button" onclick="setFontSize('xs')" data-fontsize-opt="xs" class="px-2 py-0.5 rounded-md transition text-slate-500 hover:text-slate-800">極小</button>
+                            <button type="button" onclick="setFontSize('sm')" data-fontsize-opt="sm" class="px-2 py-0.5 rounded-md transition text-slate-500 hover:text-slate-800">小</button>
+                            <button type="button" onclick="setFontSize('md')" data-fontsize-opt="md" class="px-2 py-0.5 rounded-md transition bg-white text-blue-600 shadow-2xs">標準</button>
+                            <button type="button" onclick="setFontSize('lg')" data-fontsize-opt="lg" class="px-2 py-0.5 rounded-md transition text-slate-500 hover:text-slate-800">大</button>
+                        </div>
                         <button type="button" id="pc-pin-btn" onclick="togglePinCurrentMemo()" class="px-2.5 py-1 text-xs font-bold rounded-lg border transition">
                             📌 ピン留め
                         </button>
                         <button type="button" onclick="copyMemoContent()" id="copy-content-btn" class="px-2.5 py-1 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg transition">
                             📋 コピー
                         </button>
-                        <span id="pc-current-meta-summary" class="text-xs text-slate-400 font-mono hidden md:inline"></span>
+                        <span id="pc-current-meta-summary" class="text-xs text-slate-400 font-mono hidden lg:inline"></span>
                     </div>
                 </div>
 
@@ -199,7 +208,7 @@
                 </div>
 
                 <!-- プレビュー表示（PCプレビュータブ / モバイル常時表示） -->
-                <div id="preview-mode-box" onclick="handlePreviewClick(event)" class="hidden overflow-y-auto p-3.5 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
+                <div id="preview-mode-box" onclick="handlePreviewClick(event)" class="hidden overflow-y-auto p-3 sm:p-4 text-[17px] sm:text-sm border border-slate-200 bg-slate-50/50 rounded-xl leading-[1.8] sm:leading-relaxed whitespace-pre-wrap break-words select-text font-sans text-slate-900"></div>
 
                 <!-- フッター操作（PCのみ） -->
                 <div class="pt-4 hidden sm:flex justify-between items-center border-t border-slate-100 mt-4 shrink-0">
@@ -304,8 +313,28 @@
             </div>
             <div class="p-6 overflow-y-auto space-y-6 text-sm text-slate-600">
 
-                <!-- 1. データ保存・ファイル設定 -->
+                <!-- 1. 表示文字サイズ設定 -->
                 <div>
+                    <h4 class="font-bold text-slate-800 mb-1.5">🔤 表示文字サイズ（端末ごとに保存）</h4>
+                    <p class="text-xs text-slate-500 mb-2.5">モバイル画面で一覧性・情報量を増やしたい場合は「小」や「極小」が便利です。</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="setFontSize('xs')" data-fontsize-modal="xs" class="py-2 px-2 rounded-xl border text-xs font-bold transition border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100">
+                            極小<br><span class="text-[10px] font-normal opacity-80">情報量重視</span>
+                        </button>
+                        <button type="button" onclick="setFontSize('sm')" data-fontsize-modal="sm" class="py-2 px-2 rounded-xl border text-xs font-bold transition border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100">
+                            小<br><span class="text-[10px] font-normal opacity-80">コンパクト</span>
+                        </button>
+                        <button type="button" onclick="setFontSize('md')" data-fontsize-modal="md" class="py-2 px-2 rounded-xl border text-xs font-bold transition border-blue-500 bg-blue-50 text-blue-700">
+                            標準<br><span class="text-[10px] font-normal opacity-80">デフォルト</span>
+                        </button>
+                        <button type="button" onclick="setFontSize('lg')" data-fontsize-modal="lg" class="py-2 px-2 rounded-xl border text-xs font-bold transition border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100">
+                            大<br><span class="text-[10px] font-normal opacity-80">ゆったり</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. データ保存・ファイル設定 -->
+                <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">📁 JSONデータ管理</h4>
                     <p class="text-xs text-slate-500 mb-2.5" id="env-mode-desc">PC環境では自動保存・編集、携帯環境ではJSONの読み込み・ダウンロード保存に対応しています。</p>
                     <div id="file-path-display" class="p-3 bg-slate-50 rounded-xl text-xs font-mono text-slate-700 border border-slate-200 break-all mb-3">
@@ -327,7 +356,7 @@
                     </div>
                 </div>
 
-                <!-- 2. 分類プリセット設定 -->
+                <!-- 3. 分類プリセット設定 -->
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">🏷️ 分類タグのプリセット設定</h4>
                     <div class="flex gap-2 mb-3">
@@ -337,7 +366,7 @@
                     <div id="preset-list" class="flex flex-wrap gap-1.5"></div>
                 </div>
 
-                <!-- 3. ヘルプ -->
+                <!-- 4. ヘルプ -->
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方・便利記法</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
@@ -359,6 +388,47 @@
     <script>
         const PRESET_STORAGE_KEY = 'memo_kun_presets';
         const MEMOS_STORAGE_KEY = 'memo_kun_local_cache';
+        const FONTSIZE_STORAGE_KEY = 'memo_kun_font_size';
+
+        const FONT_SIZE_PRESETS = {
+            xs: {
+                label: '極小',
+                previewClass: 'text-[13px] sm:text-xs leading-[1.6] sm:leading-relaxed p-2.5 sm:p-3.5',
+                pcEditorClass: 'text-xs leading-relaxed p-3 sm:p-3.5',
+                mobileEditorClass: 'text-sm leading-relaxed p-3',
+                mobileTitleClass: 'text-sm font-bold text-slate-900 leading-snug break-words select-text',
+                listTitleClass: 'text-[11px] sm:text-xs text-slate-800 font-bold truncate'
+            },
+            sm: {
+                label: '小',
+                previewClass: 'text-[15px] sm:text-[13px] leading-[1.7] sm:leading-relaxed p-3 sm:p-4',
+                pcEditorClass: 'text-[13px] leading-relaxed p-3.5 sm:p-4',
+                mobileEditorClass: 'text-[15px] leading-relaxed p-3.5',
+                mobileTitleClass: 'text-base font-bold text-slate-900 leading-snug break-words select-text',
+                listTitleClass: 'text-xs sm:text-[13px] text-slate-800 font-bold truncate'
+            },
+            md: {
+                label: '標準',
+                previewClass: 'text-[17px] sm:text-sm leading-[1.8] sm:leading-relaxed p-3 sm:p-4',
+                pcEditorClass: 'text-sm leading-relaxed p-3.5 sm:p-4',
+                mobileEditorClass: 'text-base leading-relaxed p-3.5',
+                mobileTitleClass: 'text-lg font-bold text-slate-900 leading-snug break-words select-text',
+                listTitleClass: 'text-xs sm:text-sm text-slate-800 font-bold truncate'
+            },
+            lg: {
+                label: '大',
+                previewClass: 'text-[19px] sm:text-base leading-[1.85] sm:leading-relaxed p-3.5 sm:p-5',
+                pcEditorClass: 'text-base leading-relaxed p-4',
+                mobileEditorClass: 'text-lg leading-relaxed p-3.5',
+                mobileTitleClass: 'text-xl font-bold text-slate-900 leading-snug break-words select-text',
+                listTitleClass: 'text-sm sm:text-base text-slate-800 font-bold truncate'
+            }
+        };
+
+        const FONT_SIZE_ORDER = ['xs', 'sm', 'md', 'lg'];
+        let currentFontSize = localStorage.getItem(FONTSIZE_STORAGE_KEY);
+        if (!FONT_SIZE_PRESETS[currentFontSize]) currentFontSize = 'md';
+
         let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['メモ', '旅行', 'レシピ'];
 
         let memos = JSON.parse(localStorage.getItem(MEMOS_STORAGE_KEY)) || [
@@ -454,7 +524,69 @@
             });
         }
 
+        function setFontSize(sizeKey) {
+            if (!FONT_SIZE_PRESETS[sizeKey]) return;
+            currentFontSize = sizeKey;
+            localStorage.setItem(FONTSIZE_STORAGE_KEY, sizeKey);
+            applyFontSizeUI();
+            renderMemoList();
+        }
+
+        function cycleFontSize() {
+            const idx = FONT_SIZE_ORDER.indexOf(currentFontSize);
+            const nextKey = FONT_SIZE_ORDER[(idx + 1) % FONT_SIZE_ORDER.length];
+            setFontSize(nextKey);
+        }
+
+        function applyFontSizeUI() {
+            const preset = FONT_SIZE_PRESETS[currentFontSize] || FONT_SIZE_PRESETS.md;
+
+            const previewBox = document.getElementById('preview-mode-box');
+            if (previewBox) {
+                const isHidden = previewBox.classList.contains('hidden');
+                const isFlex1 = previewBox.classList.contains('flex-1');
+                previewBox.className = `overflow-y-auto border border-slate-200 bg-slate-50/50 rounded-xl whitespace-pre-wrap break-words select-text font-sans text-slate-900 ${preset.previewClass}`;
+                if (isHidden) previewBox.classList.add('hidden');
+                if (isFlex1) previewBox.classList.add('flex-1');
+            }
+
+            const pcEditor = document.getElementById('memo-content');
+            if (pcEditor) {
+                pcEditor.className = `flex-1 w-full border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans select-text ${preset.pcEditorClass}`;
+            }
+
+            const mobEditor = document.getElementById('mobile-edit-content');
+            if (mobEditor) {
+                mobEditor.className = `w-full min-h-[260px] border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select-text ${preset.mobileEditorClass}`;
+            }
+
+            const mobTitle = document.getElementById('mobile-view-title');
+            if (mobTitle) {
+                mobTitle.className = preset.mobileTitleClass;
+            }
+
+            const mobBtn = document.getElementById('mobile-fontsize-btn');
+            if (mobBtn) {
+                mobBtn.innerText = `文字:${preset.label}`;
+            }
+
+            document.querySelectorAll('[data-fontsize-opt]').forEach(btn => {
+                const isSelected = btn.getAttribute('data-fontsize-opt') === currentFontSize;
+                btn.className = isSelected
+                    ? 'px-2 py-0.5 rounded-md transition bg-white text-blue-600 shadow-2xs'
+                    : 'px-2 py-0.5 rounded-md transition text-slate-500 hover:text-slate-800';
+            });
+
+            document.querySelectorAll('[data-fontsize-modal]').forEach(btn => {
+                const isSelected = btn.getAttribute('data-fontsize-modal') === currentFontSize;
+                btn.className = isSelected
+                    ? 'py-2 px-2 rounded-xl border text-xs font-bold transition border-blue-500 bg-blue-50 text-blue-700'
+                    : 'py-2 px-2 rounded-xl border text-xs font-bold transition border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100';
+            });
+        }
+
         window.onload = async () => {
+            applyFontSizeUI();
             renderPresetList();
             memos = sortMemos(memos, 'newest');
             renderMemoList();
@@ -651,6 +783,7 @@
             const filterCat = document.getElementById('filter-category').value;
             const filterImp = document.getElementById('filter-importance').value;
             const sortOrder = document.getElementById('sort-order').value;
+            const fontPreset = FONT_SIZE_PRESETS[currentFontSize] || FONT_SIZE_PRESETS.md;
 
             updateFilterButtonsState();
             updateCategoryOptions();
@@ -681,7 +814,7 @@
                     ? `<span class="text-[10px] font-bold px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded mr-1">📌 固定</span>`
                     : '';
                 return `
-                <div class="p-3.5 flex items-center justify-between cursor-pointer transition hover:bg-slate-50 ${m.id === currentMemoId ? 'bg-blue-50/70 border-l-4 border-blue-600' : ''}">
+                <div class="p-3 sm:p-3.5 flex items-center justify-between cursor-pointer transition hover:bg-slate-50 ${m.id === currentMemoId ? 'bg-blue-50/70 border-l-4 border-blue-600' : ''}">
                     <div class="min-w-0 flex-1 mr-2" onclick="selectMemo('${m.id}')">
                         <div class="flex items-center justify-between mb-1">
                             <div class="flex items-center truncate">
@@ -690,7 +823,7 @@
                             </div>
                             <span class="text-[10px] text-slate-400 font-mono shrink-0 ml-1">${escapeHtml(m.date)}</span>
                         </div>
-                        <p class="text-xs sm:text-sm text-slate-800 font-bold truncate">${escapeHtml(memoTitle)}</p>
+                        <p class="${fontPreset.listTitleClass}">${escapeHtml(memoTitle)}</p>
                         <div class="mt-1 flex items-center">
                             <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${getImportanceBadge(m.importance)}">重要度: ${escapeHtml(m.importance)}</span>
                         </div>
@@ -732,8 +865,8 @@
             }
             if (mobBtn) {
                 mobBtn.className = isPinned
-                    ? "px-2.5 py-1 text-xs font-bold bg-indigo-100 text-indigo-700 rounded-lg transition"
-                    : "px-2.5 py-1 text-xs font-bold bg-slate-100 text-slate-500 rounded-lg transition";
+                    ? "px-2 py-1 text-xs font-bold bg-indigo-100 text-indigo-700 rounded-lg transition"
+                    : "px-2 py-1 text-xs font-bold bg-slate-100 text-slate-500 rounded-lg transition";
             }
             if (mobBadge) {
                 mobBadge.classList.toggle('hidden', !isPinned);
@@ -750,7 +883,7 @@
             titleEl.innerText = (memo.title || '').trim() || '（無題のメモ）';
             catEl.innerText = memo.category || '未分類';
             impEl.innerText = `重要度: ${memo.importance || '中'}`;
-            impEl.className = `text-xs font-bold px-2 py-0.5 rounded-full ${getImportanceBadge(memo.importance || '中')}`;
+            impEl.className = `text-[11px] font-bold px-1.5 py-0.5 rounded-full ${getImportanceBadge(memo.importance || '中')}`;
             dateEl.innerText = memo.date || '';
             syncPinButtons(memo);
         }
