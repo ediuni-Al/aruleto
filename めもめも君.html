@@ -6,6 +6,13 @@
     <title>めもめも君</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        #pc-rich-editor:empty::before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
 
@@ -197,25 +204,36 @@
                         <div class="flex items-center justify-between mb-1 flex-wrap gap-1.5">
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <label class="block text-xs font-bold text-slate-500 mr-1">内容</label>
-                                <button type="button" onclick="toggleMarkerSelection('memo-content', 'y')" class="px-2 py-0.5 text-[11px] font-bold bg-amber-200/90 hover:bg-amber-300/90 text-slate-900 border border-amber-300 rounded-md transition" title="黄マーカー (Ctrl+M)">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMarker('y')" class="px-2 py-0.5 text-[11px] font-bold bg-amber-200/90 hover:bg-amber-300/90 text-slate-900 border border-amber-300 rounded-md transition" title="黄マーカー (Ctrl+M)">
                                     黄
                                 </button>
-                                <button type="button" onclick="toggleMarkerSelection('memo-content', 'r')" class="px-2 py-0.5 text-[11px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 rounded-md transition" title="赤マーカー">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMarker('r')" class="px-2 py-0.5 text-[11px] font-bold bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 rounded-md transition" title="赤マーカー">
                                     赤
                                 </button>
-                                <button type="button" onclick="toggleMarkerSelection('memo-content', 'b')" class="px-2 py-0.5 text-[11px] font-bold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded-md transition" title="青マーカー">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMarker('b')" class="px-2 py-0.5 text-[11px] font-bold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 rounded-md transition" title="青マーカー">
                                     青
                                 </button>
-                                <button type="button" onclick="toggleMarkerSelection('memo-content', 'g')" class="px-2 py-0.5 text-[11px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 rounded-md transition" title="緑マーカー">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMarker('g')" class="px-2 py-0.5 text-[11px] font-bold bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 rounded-md transition" title="緑マーカー">
                                     緑
                                 </button>
-                                <button type="button" onclick="toggleMarkerSelection('memo-content', 'p')" class="px-2 py-0.5 text-[11px] font-bold bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-900 border border-fuchsia-300 rounded-md transition" title="桃/紫マーカー">
+                                <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMarker('p')" class="px-2 py-0.5 text-[11px] font-bold bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-900 border border-fuchsia-300 rounded-md transition" title="桃/紫マーカー">
                                     桃
                                 </button>
                             </div>
                             <span id="memo-date-label" class="text-[11px] text-slate-400 font-mono"></span>
                         </div>
-                        <textarea id="memo-content" oninput="updateCurrentMemo()" placeholder="メモを入力...（==重要== や ==r:赤== でマーカー、場所：〇〇 でGoogleマップ検索、- [ ] でチェックリスト）" class="flex-1 w-full p-3.5 sm:p-4 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans leading-relaxed select-text"></textarea>
+
+                        <!-- 記号（==...==）を画面に出さず〇〇のみ色付きマーカー表示するPC編集領域 -->
+                        <div id="pc-rich-editor"
+                             contenteditable="true"
+                             oninput="handlePcRichEditorInput()"
+                             onpaste="handlePcRichEditorPaste(event)"
+                             onkeydown="handlePcRichEditorKeydown(event)"
+                             data-placeholder="メモを入力...（色ボタンや Ctrl+M でマーカー、場所：〇〇 でGoogleマップ検索、- [ ] でチェックリスト）"
+                             class="flex-1 w-full overflow-y-auto border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words font-sans text-slate-900 select-text"></div>
+
+                        <!-- 内部保持用（保存・プレビュー・モバイル同期の基準となる ==...== 記法文字列） -->
+                        <textarea id="memo-content" class="hidden"></textarea>
                     </div>
                 </div>
 
@@ -386,7 +404,7 @@
                 <div class="border-t border-slate-100 pt-5">
                     <h4 class="font-bold text-slate-800 mb-2">💡 使い方・便利記法</h4>
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
-                        <li><strong>色付きマーカー:</strong> <code>==重要==</code>（黄）のほか、<code>==r:赤==</code> / <code>==b:青==</code> / <code>==g:緑==</code> / <code>==p:桃==</code> / <code>==y:黄==</code> で色指定可能（クリックで解除、編集時は <code>Ctrl+M</code> で黄マーカー付与）。</li>
+                        <li><strong>色付きマーカー:</strong> 内部記法 <code>==重要==</code>（黄）や <code>==r:赤==</code> / <code>==b:青==</code> / <code>==g:緑==</code> / <code>==p:桃==</code> に対応。PC編集画面では記号を隠してマーカー文字のみ表示します。</li>
                         <li><strong>Googleマップ検索:</strong> <code>場所：天文館</code> のように書くと、プレビューでGoogleマップ検索リンクになります。</li>
                         <li><strong>チェックリスト:</strong> <code>- [ ] やること</code> と書くと、プレビュー上でクリック切り替えできます。</li>
                         <li><strong>PC連携:</strong> Googleドライブの同期フォルダ内のJSONを一度選択すると、次回からはバナーの「再接続」からすぐ編集できます。</li>
@@ -449,42 +467,30 @@
         const MARKER_COLOR_STYLES = {
             y: {
                 label: '黄',
-                markClass: 'bg-amber-200/90 hover:bg-amber-300/90 text-slate-900'
+                markClass: 'bg-amber-200/90 hover:bg-amber-300/90 text-slate-900',
+                editorMarkClass: 'pc-marker bg-amber-200/90 text-slate-900 px-1 py-0.5 rounded'
             },
             r: {
                 label: '赤',
-                markClass: 'bg-rose-200/90 hover:bg-rose-300/90 text-rose-950'
+                markClass: 'bg-rose-200/90 hover:bg-rose-300/90 text-rose-950',
+                editorMarkClass: 'pc-marker bg-rose-200/90 text-rose-950 px-1 py-0.5 rounded'
             },
             b: {
                 label: '青',
-                markClass: 'bg-sky-200/90 hover:bg-sky-300/90 text-sky-950'
+                markClass: 'bg-sky-200/90 hover:bg-sky-300/90 text-sky-950',
+                editorMarkClass: 'pc-marker bg-sky-200/90 text-sky-950 px-1 py-0.5 rounded'
             },
             g: {
                 label: '緑',
-                markClass: 'bg-emerald-200/90 hover:bg-emerald-300/90 text-emerald-950'
+                markClass: 'bg-emerald-200/90 hover:bg-emerald-300/90 text-emerald-950',
+                editorMarkClass: 'pc-marker bg-emerald-200/90 text-emerald-950 px-1 py-0.5 rounded'
             },
             p: {
                 label: '桃',
-                markClass: 'bg-fuchsia-200/90 hover:bg-fuchsia-300/90 text-fuchsia-950'
+                markClass: 'bg-fuchsia-200/90 hover:bg-fuchsia-300/90 text-fuchsia-950',
+                editorMarkClass: 'pc-marker bg-fuchsia-200/90 text-fuchsia-950 px-1 py-0.5 rounded'
             }
         };
-
-        const MARKER_TOKEN_REGEX = /==([yrbgpYRBG]:)?([^=\n]+)==/g;
-
-        function parseMarkerInner(rawInner) {
-            const match = rawInner.match(/^([yrbgpYRBG]):(.*)$/);
-            if (match) {
-                const code = match[1].toLowerCase();
-                return {
-                    colorCode: MARKER_COLOR_STYLES[code] ? code : 'y',
-                    text: match[2]
-                };
-            }
-            return {
-                colorCode: 'y',
-                text: rawInner
-            };
-        }
 
         let categoryPresets = JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)) || ['メモ', '旅行', 'レシピ'];
 
@@ -496,7 +502,7 @@
                 importance: "中",
                 pinned: true,
                 date: getNowTimestamp(),
-                content: "めもめも君へようこそ！\n\n- [ ] プレビューでチェックボックスをクリックして試す\n- [x] PCの編集画面で分類・重要度をまとめて設定\n\nマーカーは ==黄マーカー== や ==r:赤マーカー== / ==b:青マーカー== / ==g:緑マーカー== / ==p:桃マーカー== で色指定できます（クリックで解除）。\n場所：天文館\nURLも自動でリンクになります: https://example.com"
+                content: "めもめも君へようこそ！\n\n- [ ] プレビューでチェックボックスをクリックして試す\n- [x] PCの編集画面でも ==黄マーカー== や ==r:赤マーカー== が記号なしで表示されます\n\n他の色も ==b:青マーカー== / ==g:緑マーカー== / ==p:桃マーカー== で指定できます（プレビューでクリックすると解除）。\n場所：天文館\nURLも自動でリンクになります: https://example.com"
             }
         ];
 
@@ -581,6 +587,170 @@
             });
         }
 
+        // 内部記法（==r:赤== / ==黄==）→ PC編集画面DOM（記号なし・色付き<mark>のみ）
+        function renderPcRichEditorFromRaw(rawText) {
+            const editor = document.getElementById('pc-rich-editor');
+            if (!editor) return;
+
+            const text = String(rawText || '');
+            if (!text) {
+                editor.innerHTML = '';
+                return;
+            }
+
+            const markerRegex = /==([yrbgpYRBG]:)?([^=\n]+)==/g;
+            let html = '';
+            let lastIdx = 0;
+            let match;
+
+            while ((match = markerRegex.exec(text)) !== null) {
+                if (match.index > lastIdx) {
+                    html += escapeHtml(text.slice(lastIdx, match.index));
+                }
+                const code = match[1] ? match[1][0].toLowerCase() : 'y';
+                const styleInfo = MARKER_COLOR_STYLES[code] || MARKER_COLOR_STYLES.y;
+                html += `<mark data-color="${code}" class="${styleInfo.editorMarkClass}">${escapeHtml(match[2])}</mark>`;
+                lastIdx = match.index + match[0].length;
+            }
+
+            if (lastIdx < text.length) {
+                html += escapeHtml(text.slice(lastIdx));
+            }
+
+            editor.innerHTML = html;
+        }
+
+        // PC編集画面DOM → 内部記法（==r:赤== / ==黄==）へ変換
+        function serializePcRichEditorToRaw() {
+            const editor = document.getElementById('pc-rich-editor');
+            if (!editor) return '';
+
+            function walk(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    return node.nodeValue || '';
+                }
+                if (node.nodeType !== Node.ELEMENT_NODE) {
+                    return '';
+                }
+
+                const tag = node.tagName.toLowerCase();
+                if (tag === 'mark' || node.classList.contains('pc-marker')) {
+                    const innerText = Array.from(node.childNodes).map(walk).join('');
+                    if (!innerText) return '';
+                    const rawColor = (node.getAttribute('data-color') || 'y').toLowerCase();
+                    const code = MARKER_COLOR_STYLES[rawColor] ? rawColor : 'y';
+                    return code === 'y' ? `==${innerText}==` : `==${code}:${innerText}==`;
+                }
+
+                if (tag === 'br') {
+                    return '\n';
+                }
+
+                const childStr = Array.from(node.childNodes).map(walk).join('');
+                if (tag === 'div' || tag === 'p') {
+                    return childStr + '\n';
+                }
+                return childStr;
+            }
+
+            let result = Array.from(editor.childNodes).map(walk).join('');
+            result = result.replace(/\r\n/g, '\n').replace(/\u00a0/g, ' ');
+            // 末尾に余分な改行が1つだけ自動付与されるケースを整理
+            if (result.endsWith('\n') && editor.lastElementChild && /^(div|p|br)$/i.test(editor.lastElementChild.tagName)) {
+                result = result.slice(0, -1);
+            }
+            return result;
+        }
+
+        function handlePcRichEditorInput() {
+            const raw = serializePcRichEditorToRaw();
+            document.getElementById('memo-content').value = raw;
+            updateCurrentMemo(true);
+        }
+
+        function handlePcRichEditorPaste(event) {
+            event.preventDefault();
+            const clipboardText = (event.clipboardData || window.clipboardData).getData('text/plain') || '';
+            document.execCommand('insertText', false, clipboardText);
+            handlePcRichEditorInput();
+        }
+
+        function handlePcRichEditorKeydown(event) {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
+                event.preventDefault();
+                applyPcMarker('y');
+            }
+        }
+
+        function applyPcMarker(colorCode) {
+            const editor = document.getElementById('pc-rich-editor');
+            if (!editor) return;
+            const cleanCode = MARKER_COLOR_STYLES[colorCode] ? colorCode : 'y';
+            const styleInfo = MARKER_COLOR_STYLES[cleanCode];
+
+            editor.focus();
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+
+            let range = sel.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+            }
+
+            // 既にマーカー内またはマーカー全体が選択されている場合のトグル処理
+            const containerEl = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+                ? range.commonAncestorContainer
+                : range.commonAncestorContainer.parentElement;
+            const existingMark = containerEl ? containerEl.closest('mark.pc-marker') : null;
+
+            if (existingMark && editor.contains(existingMark)) {
+                const currentColor = (existingMark.getAttribute('data-color') || 'y').toLowerCase();
+                if (currentColor === cleanCode) {
+                    const textNode = document.createTextNode(existingMark.textContent || '');
+                    existingMark.parentNode.replaceChild(textNode, existingMark);
+                    const newRange = document.createRange();
+                    newRange.selectNodeContents(textNode);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                } else {
+                    existingMark.setAttribute('data-color', cleanCode);
+                    existingMark.className = styleInfo.editorMarkClass;
+                }
+                handlePcRichEditorInput();
+                return;
+            }
+
+            if (range.collapsed) {
+                const mark = document.createElement('mark');
+                mark.setAttribute('data-color', cleanCode);
+                mark.className = styleInfo.editorMarkClass;
+                mark.textContent = '重要箇所';
+                range.insertNode(mark);
+
+                const newRange = document.createRange();
+                newRange.selectNodeContents(mark);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+            } else {
+                const extracted = range.extractContents();
+                const plainText = extracted.textContent || '重要箇所';
+                const mark = document.createElement('mark');
+                mark.setAttribute('data-color', cleanCode);
+                mark.className = styleInfo.editorMarkClass;
+                mark.textContent = plainText;
+                range.insertNode(mark);
+
+                const newRange = document.createRange();
+                newRange.selectNodeContents(mark);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+            }
+
+            handlePcRichEditorInput();
+        }
+
         function setFontSize(sizeKey) {
             if (!FONT_SIZE_PRESETS[sizeKey]) return;
             currentFontSize = sizeKey;
@@ -607,9 +777,9 @@
                 if (isFlex1) previewBox.classList.add('flex-1');
             }
 
-            const pcEditor = document.getElementById('memo-content');
-            if (pcEditor) {
-                pcEditor.className = `flex-1 w-full border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none font-sans select-text ${preset.pcEditorClass}`;
+            const pcRichEditor = document.getElementById('pc-rich-editor');
+            if (pcRichEditor) {
+                pcRichEditor.className = `flex-1 w-full overflow-y-auto border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words font-sans text-slate-900 select-text ${preset.pcEditorClass}`;
             }
 
             const mobEditor = document.getElementById('mobile-edit-content');
@@ -683,7 +853,7 @@
                 saveFile();
             } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
                 const activeId = document.activeElement ? document.activeElement.id : '';
-                if (activeId === 'memo-content' || activeId === 'mobile-edit-content') {
+                if (activeId === 'mobile-edit-content') {
                     e.preventDefault();
                     toggleMarkerSelection(activeId, 'y');
                 }
@@ -960,18 +1130,20 @@
             const memo = memos.find(m => m.id === id);
             if (!memo) return;
 
+            const rawContent = memo.content || '';
             document.getElementById('no-memo-selected').classList.add('hidden');
             document.getElementById('editor-container').classList.remove('hidden');
 
             document.getElementById('memo-title').value = memo.title || '';
             document.getElementById('memo-category').value = memo.category || '';
             document.getElementById('memo-importance').value = memo.importance || '中';
-            document.getElementById('memo-content').value = memo.content || '';
+            document.getElementById('memo-content').value = rawContent;
+            renderPcRichEditorFromRaw(rawContent);
 
             syncPinButtons(memo);
             syncMobileViewHeader(memo);
             syncPcMetaSummary(memo);
-            updateCounters(memo.content || '');
+            updateCounters(rawContent);
             updatePreviewContent();
             renderMemoList();
 
@@ -1022,6 +1194,7 @@
             previewPanel.classList.remove('flex-1');
 
             if (tabName === 'edit') {
+                renderPcRichEditorFromRaw(document.getElementById('memo-content').value);
                 editPanel.classList.remove('hidden');
                 editPanel.classList.add('sm:flex');
             } else if (tabName === 'preview') {
@@ -1076,12 +1249,14 @@
 
         function syncFromMobileEditor() {
             if (!currentMemoId) return;
+            const mobContent = document.getElementById('mobile-edit-content').value;
             document.getElementById('memo-title').value = document.getElementById('mobile-edit-title').value;
             document.getElementById('memo-category').value = document.getElementById('mobile-edit-category').value;
             document.getElementById('memo-importance').value = document.getElementById('mobile-edit-importance').value;
-            document.getElementById('memo-content').value = document.getElementById('mobile-edit-content').value;
-            updateMobileStats(document.getElementById('mobile-edit-content').value);
-            updateCurrentMemo();
+            document.getElementById('memo-content').value = mobContent;
+            renderPcRichEditorFromRaw(mobContent);
+            updateMobileStats(mobContent);
+            updateCurrentMemo(false);
         }
 
         function formatMarkerToken(text, colorCode) {
@@ -1131,7 +1306,7 @@
             if (textareaId === 'mobile-edit-content') {
                 syncFromMobileEditor();
             } else {
-                updateCurrentMemo();
+                updateCurrentMemo(false);
             }
         }
 
@@ -1232,6 +1407,7 @@
                 memo.content = lines.join('\n');
                 memo.date = getNowTimestamp();
                 document.getElementById('memo-content').value = memo.content;
+                renderPcRichEditorFromRaw(memo.content);
                 syncPcMetaSummary(memo);
                 syncMobileViewHeader(memo);
                 updateCounters(memo.content);
@@ -1255,6 +1431,7 @@
                     memo.content = updated;
                     memo.date = getNowTimestamp();
                     document.getElementById('memo-content').value = memo.content;
+                    renderPcRichEditorFromRaw(memo.content);
                     syncPcMetaSummary(memo);
                     syncMobileViewHeader(memo);
                     updateCounters(memo.content);
@@ -1311,7 +1488,7 @@
             triggerAutoSave();
         }
 
-        function updateCurrentMemo() {
+        function updateCurrentMemo(fromRichEditor = false) {
             if (!currentMemoId) return;
             const index = memos.findIndex(m => m.id === currentMemoId);
             if (index === -1) return;
@@ -1320,6 +1497,9 @@
             memo.title = document.getElementById('memo-title').value;
             memo.category = document.getElementById('memo-category').value;
             memo.importance = document.getElementById('memo-importance').value;
+            if (!fromRichEditor) {
+                renderPcRichEditorFromRaw(document.getElementById('memo-content').value);
+            }
             memo.content = document.getElementById('memo-content').value;
             memo.date = getNowTimestamp();
 
