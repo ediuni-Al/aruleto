@@ -12,6 +12,10 @@
             color: #94a3b8;
             pointer-events: none;
         }
+        #pc-rich-editor, #preview-mode-box, #mobile-edit-content {
+            tab-size: 4;
+            -moz-tab-size: 4;
+        }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen flex flex-col overflow-hidden select-none">
@@ -223,6 +227,9 @@
                                 <button type="button" onmousedown="event.preventDefault()" onclick="applyPcMapLink()" class="px-2 py-0.5 text-[11px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-md transition" title="選択範囲をGoogleマップ検索に紐づけ（再押下で解除）">
                                     🗺️ マップ
                                 </button>
+                                <button type="button" onmousedown="event.preventDefault()" onclick="insertPcTab()" class="px-2 py-0.5 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-md transition" title="タブ文字を挿入 (Tabキーでも可)">
+                                    ⇥ TAB
+                                </button>
                             </div>
                             <span id="memo-date-label" class="text-[11px] text-slate-400 font-mono"></span>
                         </div>
@@ -233,7 +240,7 @@
                              oninput="handlePcRichEditorInput()"
                              onpaste="handlePcRichEditorPaste(event)"
                              onkeydown="handlePcRichEditorKeydown(event)"
-                             data-placeholder="メモを入力...（色ボタンや Ctrl+M でマーカー、選択して「🗺️ マップ」でGoogleマップ検索リンク、- [ ] でチェックリスト）"
+                             data-placeholder="メモを入力...（色ボタンや Ctrl+M でマーカー、選択して「🗺️ マップ」でGoogleマップ検索リンク、Tabキー/⇥ TABでインデント）"
                              class="flex-1 w-full overflow-y-auto border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 whitespace-pre-wrap break-words font-sans text-slate-900 select-text"></div>
 
                         <!-- 内部保持用（保存・プレビュー・モバイル同期の基準となる記法文字列） -->
@@ -329,9 +336,10 @@
                         <button type="button" onclick="toggleMarkerSelection('mobile-edit-content', 'g')" class="px-2 py-0.5 text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 rounded-md">緑</button>
                         <button type="button" onclick="toggleMarkerSelection('mobile-edit-content', 'p')" class="px-2 py-0.5 text-xs font-bold bg-fuchsia-100 text-fuchsia-900 border border-fuchsia-300 rounded-md">桃</button>
                         <button type="button" onclick="toggleMapSelection('mobile-edit-content')" class="px-2 py-0.5 text-xs font-bold bg-emerald-50 text-emerald-900 border border-emerald-300 rounded-md">🗺️ マップ</button>
+                        <button type="button" onclick="insertTextareaTab('mobile-edit-content')" class="px-2 py-0.5 text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300 rounded-md">⇥ TAB</button>
                     </div>
                 </div>
-                <textarea id="mobile-edit-content" oninput="syncFromMobileEditor()" placeholder="ここにメモを入力..." class="w-full min-h-[260px] p-3.5 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed select-text"></textarea>
+                <textarea id="mobile-edit-content" oninput="syncFromMobileEditor()" onkeydown="handleMobileEditorKeydown(event)" placeholder="ここにメモを入力..." class="w-full min-h-[260px] p-3.5 text-base border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 leading-relaxed select-text"></textarea>
             </div>
         </div>
 
@@ -411,6 +419,7 @@
                     <ul class="list-disc list-inside space-y-1.5 text-xs text-slate-600 leading-relaxed">
                         <li><strong>色付きマーカー:</strong> 内部記法 <code>==重要==</code>（黄）や <code>==r:赤==</code> / <code>==b:青==</code> / <code>==g:緑==</code> / <code>==p:桃==</code> に対応。PC編集画面では記号を隠してマーカー文字のみ表示します。</li>
                         <li><strong>Googleマップ検索:</strong> 文字を選択して「🗺️ マップ」ボタン（内部記法 <code>@@map:天文館@@</code>）を押すとGoogleマップ検索リンクになります（再度「🗺️ マップ」を押すと解除）。従来の <code>場所：天文館</code> 記法にも対応しています。</li>
+                        <li><strong>タブ（インデント）入力:</strong> 本文入力中にキーボードの <code>Tab</code> キー、またはツールバーの「⇥ TAB」ボタンでタブ文字を挿入できます（<code>Shift + Tab</code> で前の入力欄へ移動）。</li>
                         <li><strong>チェックリスト:</strong> <code>- [ ] やること</code> と書くと、プレビュー上でクリック切り替えできます。</li>
                         <li><strong>PC連携:</strong> Googleドライブの同期フォルダ内のJSONを一度選択すると、次回からはバナーの「再接続」からすぐ編集できます。</li>
                     </ul>
@@ -600,9 +609,9 @@
                 .trim();
         }
 
-function buildGoogleMapsSearchUrl(queryText) {
-    const q = normalizeMapQuery(queryText) || String(queryText || '').trim();
-    return `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
+        function buildGoogleMapsSearchUrl(queryText) {
+            const q = normalizeMapQuery(queryText) || String(queryText || '').trim();
+            return `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
         }
 
         // 内部記法（==r:赤== / ==黄== / @@map:場所@@）→ PC編集画面DOM（記号なし）
@@ -706,10 +715,48 @@ function buildGoogleMapsSearchUrl(queryText) {
             handlePcRichEditorInput();
         }
 
+        function insertPcTab() {
+            const editor = document.getElementById('pc-rich-editor');
+            if (!editor) return;
+            editor.focus();
+            document.execCommand('insertText', false, '\t');
+            handlePcRichEditorInput();
+        }
+
+        function insertTextareaTab(textareaId) {
+            const el = document.getElementById(textareaId);
+            if (!el) return;
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
+            const val = el.value;
+
+            el.value = val.slice(0, start) + '\t' + val.slice(end);
+            el.focus();
+            el.setSelectionRange(start + 1, start + 1);
+
+            if (textareaId === 'mobile-edit-content') {
+                syncFromMobileEditor();
+            } else {
+                updateCurrentMemo(false);
+            }
+        }
+
         function handlePcRichEditorKeydown(event) {
+            if (event.key === 'Tab' && !event.shiftKey) {
+                event.preventDefault();
+                insertPcTab();
+                return;
+            }
             if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'm') {
                 event.preventDefault();
                 applyPcMarker('y');
+            }
+        }
+
+        function handleMobileEditorKeydown(event) {
+            if (event.key === 'Tab' && !event.shiftKey) {
+                event.preventDefault();
+                insertTextareaTab('mobile-edit-content');
             }
         }
 
