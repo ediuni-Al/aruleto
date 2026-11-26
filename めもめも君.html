@@ -660,46 +660,83 @@
             const editor = document.getElementById('pc-rich-editor');
             if (!editor) return '';
 
-            function walk(node) {
-                if (node.nodeType === Node.TEXT_NODE) {
-                    return node.nodeValue || '';
-                }
-                if (node.nodeType !== Node.ELEMENT_NODE) {
-                    return '';
-                }
-
-                const tag = node.tagName.toLowerCase();
-                if (tag === 'mark' || node.classList.contains('pc-marker')) {
-                    const innerText = Array.from(node.childNodes).map(walk).join('');
-                    if (!innerText) return '';
-                    const rawColor = (node.getAttribute('data-color') || 'y').toLowerCase();
-                    const code = MARKER_COLOR_STYLES[rawColor] ? rawColor : 'y';
-                    return code === 'y' ? `==${innerText}==` : `==${code}:${innerText}==`;
-                }
-
-                if (node.dataset && node.dataset.mapLink === '1') {
-                    const label = (node.textContent || '').replace(/^📍\s*/, '').trim();
-                    if (!label) return '';
-                    return `@@map:${label}@@`;
-                }
-
-                if (tag === 'br') {
-                    return '\n';
-                }
-
-                const childStr = Array.from(node.childNodes).map(walk).join('');
-                if (tag === 'div' || tag === 'p') {
-                    return childStr + '\n';
-                }
-                return childStr;
+            function isBlockElement(node) {
+                return node && node.nodeType === Node.ELEMENT_NODE && /^(div|p)$/i.test(node.tagName);
             }
 
-            let result = Array.from(editor.childNodes).map(walk).join('');
-            result = result.replace(/\r\n/g, '\n').replace(/\u00a0/g, ' ');
-            if (result.endsWith('\n') && editor.lastElementChild && /^(div|p|br)$/i.test(editor.lastElementChild.tagName)) {
-                result = result.slice(0, -1);
+            function serializeInlineNodes(nodes) {
+                let out = '';
+                for (let i = 0; i < nodes.length; i++) {
+                    const node = nodes[i];
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        out += node.nodeValue || '';
+                    } else if (node.nodeType === Node.ELEMENT_NODE) {
+                        const tag = node.tagName.toLowerCase();
+                        if (tag === 'br') {
+                            // ブロック末尾のブラウザ自動補完用 <br> は改行として二重カウントしない
+                            const isTrailingBrInBlock =
+                                i === nodes.length - 1 &&
+                                node.parentNode &&
+                                node.parentNode !== editor &&
+                                isBlockElement(node.parentNode);
+                            if (!isTrailingBrInBlock) {
+                                out += '\n';
+                            }
+                        } else if (tag === 'mark' || node.classList.contains('pc-marker')) {
+                            const innerText = serializeInlineNodes(node.childNodes);
+                            if (innerText) {
+                                const rawColor = (node.getAttribute('data-color') || 'y').toLowerCase();
+                                const code = MARKER_COLOR_STYLES[rawColor] ? rawColor : 'y';
+                                out += code === 'y' ? `==${innerText}==` : `==${code}:${innerText}==`;
+                            }
+                        } else if (node.dataset && node.dataset.mapLink === '1') {
+                            const label = (node.textContent || '').replace(/^📍\s*/, '').trim();
+                            if (label) {
+                                out += `@@map:${label}@@`;
+                            }
+                        } else {
+                            out += serializeInlineNodes(node.childNodes);
+                        }
+                    }
+                }
+                return out;
             }
-            return result;
+
+            const childNodes = Array.from(editor.childNodes);
+            const hasBlockChild = childNodes.some(isBlockElement);
+
+            let result = '';
+            if (!hasBlockChild) {
+                // インライン要素と <br> のみで構成される場合
+                result = serializeInlineNodes(childNodes);
+            } else {
+                // <div> / <p> とトップレベル要素が混在する場合、行単位で結合
+                const lines = [];
+                let inlineBuffer = [];
+
+                const flushInlineBuffer = () => {
+                    if (inlineBuffer.length > 0) {
+                        lines.push(serializeInlineNodes(inlineBuffer));
+                        inlineBuffer = [];
+                    }
+                };
+
+                for (const node of childNodes) {
+                    if (isBlockElement(node)) {
+                        flushInlineBuffer();
+                        lines.push(serializeInlineNodes(node.childNodes));
+                    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'br') {
+                        flushInlineBuffer();
+                        lines.push('');
+                    } else {
+                        inlineBuffer.push(node);
+                    }
+                }
+                flushInlineBuffer();
+                result = lines.join('\n');
+            }
+
+            return result.replace(/\r\n/g, '\n').replace(/\u00a0/g, ' ');
         }
 
         function handlePcRichEditorInput() {
@@ -1906,3 +1943,4 @@
     </script>
 </body>
 </html>
+```[cite: 1]
